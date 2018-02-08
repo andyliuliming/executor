@@ -80,6 +80,7 @@ func (c *client) Cleanup(logger lager.Logger) {
 
 func (c *client) AllocateContainers(logger lager.Logger, requests []executor.AllocationRequest) ([]executor.AllocationFailure, error) {
 	logger = logger.Session("allocate-containers")
+	logger.Error("################## (andliu) AllocateContainers", nil, lager.Data{"requests": requests})
 	failures := make([]executor.AllocationFailure, 0)
 
 	for i := range requests {
@@ -90,7 +91,7 @@ func (c *client) AllocateContainers(logger lager.Logger, requests []executor.All
 			failures = append(failures, executor.NewAllocationFailure(req, err.Error()))
 			continue
 		}
-
+		// if it's aci, then we do not need to reserve??
 		_, err = c.containerStore.Reserve(logger, req)
 		if err != nil {
 			logger.Error("failed-to-allocate-container", err, lager.Data{"guid": req.Guid})
@@ -107,6 +108,8 @@ func (c *client) GetContainer(logger lager.Logger, guid string) (executor.Contai
 		"guid": guid,
 	})
 
+	logger.Error("################## (andliu) GetContainer", nil, lager.Data{"guid": guid})
+
 	container, err := c.containerStore.Get(logger, guid)
 	if err != nil {
 		logger.Error("failed-to-get-container", err)
@@ -119,7 +122,8 @@ func (c *client) RunContainer(logger lager.Logger, request *executor.RunRequest)
 	logger = logger.Session("run-container", lager.Data{
 		"guid": request.Guid,
 	})
-
+	// logger.Error("################## (andliu) RunContainer in depot.", nil, lager.Data{"requestXXX": request})
+	// logger.Error("################## (andliu) RunContainer in depot. RunInfo:", nil, lager.Data{"RunInfo": request.RunInfo})
 	logger.Debug("initializing-container")
 	err := c.containerStore.Initialize(logger, request)
 	if err != nil {
@@ -135,6 +139,8 @@ func (c *client) RunContainer(logger lager.Logger, request *executor.RunRequest)
 func (c *client) newRunContainerWorker(logger lager.Logger, guid string) func() {
 	return func() {
 		logger.Info("creating-container")
+		logger.Error("################## (andliu) newRunContainerWorker(inner)", nil)
+
 		_, err := c.containerStore.Create(logger, guid)
 		if err != nil {
 			logger.Error("failed-creating-container", err)
@@ -162,10 +168,12 @@ func tagsMatch(needles, haystack executor.Tags) bool {
 }
 
 func (c *client) ListContainers(logger lager.Logger) ([]executor.Container, error) {
+	logger.Error("############### (andliu) ListContainers.", nil)
 	return c.containerStore.List(logger), nil
 }
 
 func (c *client) GetBulkMetrics(logger lager.Logger) (map[string]executor.Metrics, error) {
+	logger.Error("############### (andliu) GetBulkMetrics.", nil)
 	errChannel := make(chan error, 1)
 	metricsChannel := make(chan map[string]executor.Metrics, 1)
 
@@ -212,6 +220,7 @@ func (c *client) StopContainer(logger lager.Logger, guid string) error {
 	logger.Info("starting")
 	defer logger.Info("complete")
 
+	logger.Error("############### (andliu) StopContainer.", nil, lager.Data{"guid": guid})
 	return c.containerStore.Stop(logger, guid)
 }
 
@@ -221,6 +230,7 @@ func (c *client) DeleteContainer(logger lager.Logger, guid string) error {
 	logger.Info("starting")
 	defer logger.Info("complete")
 
+	logger.Error("############### (andliu) DeleteContainer.", nil)
 	errChannel := make(chan error, 1)
 	c.deletionWorkPool.Submit(func() {
 		errChannel <- c.containerStore.Destroy(logger, guid)
@@ -237,16 +247,20 @@ func (c *client) DeleteContainer(logger lager.Logger, guid string) error {
 
 func (c *client) RemainingResources(logger lager.Logger) (executor.ExecutorResources, error) {
 	logger = logger.Session("remaining-resources")
+	logger.Error("############### (andliu) RemainingResources in depot.", nil)
 	return c.containerStore.RemainingResources(logger), nil
 }
 
 func (c *client) Ping(logger lager.Logger) error {
+	logger.Error("############### (andliu) Ping in depot.", nil)
+
 	return c.gardenClient.Ping()
 }
 
 func (c *client) TotalResources(logger lager.Logger) (executor.ExecutorResources, error) {
 	totalCapacity := c.totalCapacity
 
+	logger.Error("############### (andliu) TotalResources in depot.", nil)
 	return executor.ExecutorResources{
 		MemoryMB:   totalCapacity.MemoryMB,
 		DiskMB:     totalCapacity.DiskMB,
@@ -258,6 +272,7 @@ func (c *client) GetFiles(logger lager.Logger, guid, sourcePath string) (io.Read
 	logger = logger.Session("get-files", lager.Data{
 		"guid": guid,
 	})
+	logger.Error("############### (andliu) GetFiles in depot.", nil, lager.Data{"guid": guid, "sourcePath": sourcePath})
 
 	errChannel := make(chan error, 1)
 	readChannel := make(chan io.ReadCloser, 1)
@@ -283,6 +298,7 @@ func (c *client) GetFiles(logger lager.Logger, guid, sourcePath string) (io.Read
 func (c *client) VolumeDrivers(logger lager.Logger) ([]string, error) {
 	logger = logger.Session("volume-drivers")
 
+	logger.Error("############### (andliu) VolumeDrivers in depot.", nil)
 	response, err := c.volmanClient.ListDrivers(logger)
 	if err != nil {
 		logger.Error("cannot-fetch-drivers", err)
@@ -301,12 +317,15 @@ func (c *client) SubscribeToEvents(logger lager.Logger) (executor.EventSource, e
 }
 
 func (c *client) Healthy(logger lager.Logger) bool {
+	logger.Error("############### (andliu) Healthy in depot.", nil)
 	c.healthyLock.RLock()
 	defer c.healthyLock.RUnlock()
 	return c.healthy
 }
 
 func (c *client) SetHealthy(logger lager.Logger, healthy bool) {
+
+	logger.Error("############### (andliu) SetHealthy in depot.", nil, lager.Data{"healthy": healthy})
 	c.healthyLock.Lock()
 	defer c.healthyLock.Unlock()
 	c.healthy = healthy

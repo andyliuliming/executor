@@ -192,7 +192,7 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 		logger.Error("failed-to-parse-post-setup-hook", err)
 		return nil, grouper.Members{}, err
 	}
-
+	logger.Error("################ (andliu) ExecuterConfig:", nil, lager.Data{"config": config})
 	gardenClient := GardenClient.New(GardenConnection.New(config.GardenNetwork, config.GardenAddr))
 	err = waitForGarden(logger, gardenClient, metronClient, clock)
 	if err != nil {
@@ -203,7 +203,8 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 		gardenClient: gardenClient,
 		owner:        config.ContainerOwnerName,
 	}
-
+	// ?? why destroy containers at initialize ??
+	logger.Error("################ (andliu) pre destroyContainers:", nil)
 	destroyContainers(gardenClient, containersFetcher, logger)
 
 	workDir := setupWorkDir(logger, config.TempDir)
@@ -221,7 +222,7 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 
 	downloader := cacheddownloader.NewDownloader(10*time.Minute, int(math.MaxInt8), assetTLSConfig)
 	uploader := uploader.New(logger, 10*time.Minute, assetTLSConfig)
-
+	// seems the cache path stores the build packs.
 	cache := cacheddownloader.NewCache(config.CachePath, int64(config.MaxCacheSizeInBytes))
 	cachedDownloader := cacheddownloader.New(
 		workDir,
@@ -319,6 +320,7 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 		MetricsWorkPoolSize: config.MetricsWorkPoolSize,
 	}
 
+	// this is the client to be used.
 	depotClient := depot.NewClient(
 		totalCapacity,
 		containerStore,
@@ -347,7 +349,9 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 
 	return depotClient,
 		grouper.Members{
+			// second parameter is the Runners.
 			{"volman-driver-syncer", volmanDriverSyncer},
+			// second parameter is the Runners.
 			{"metrics-reporter", &metrics.Reporter{
 				ExecutorSource: depotClient,
 				Interval:       metricsReportInterval,
@@ -355,7 +359,9 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 				Logger:         logger,
 				MetronClient:   metronClient,
 			}},
+			// second parameter is the Runners.
 			{"hub-closer", closeHub(logger, hub)},
+			// second parameter is the Runners.
 			{"container-metrics-reporter", containermetrics.NewStatsReporter(
 				logger,
 				time.Duration(config.ContainerMetricsReportInterval),
@@ -365,6 +371,7 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 				depotClient,
 				metronClient,
 			)},
+			// second parameter is the Runners.
 			{"garden_health_checker", gardenhealth.NewRunner(
 				time.Duration(config.GardenHealthcheckInterval),
 				time.Duration(config.GardenHealthcheckEmissionInterval),
@@ -375,7 +382,9 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 				metronClient,
 				clock,
 			)},
+			// second parameter is the Runners.
 			{"registry-pruner", containerStore.NewRegistryPruner(logger)},
+			// second parameter is the Runners.
 			{"container-reaper", containerStore.NewContainerReaper(logger)},
 		},
 		nil

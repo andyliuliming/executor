@@ -145,6 +145,8 @@ func (n *storeNode) Initialize(logger lager.Logger, req *executor.RunRequest) er
 
 func (n *storeNode) Create(logger lager.Logger) error {
 	logger = logger.Session("node-create")
+
+	logger.Error("################# (andliu) Create in storenode.go", nil)
 	n.acquireOpLock(logger)
 	defer n.releaseOpLock(logger)
 
@@ -158,12 +160,14 @@ func (n *storeNode) Create(logger lager.Logger) error {
 	}
 
 	logStreamer := logStreamerFromLogConfig(info.LogConfig, n.metronClient)
-
+	// logger.Error("################# (andliu) info:", nil, lager.Data{"info": info})
+	logger.Error("################# (andliu) info.CachedDependencies:", nil, lager.Data{"cacheddependency": info.CachedDependencies})
 	mounts, err := n.dependencyManager.DownloadCachedDependencies(logger, info.CachedDependencies, logStreamer)
 	if err != nil {
 		n.complete(logger, true, DownloadCachedDependenciesFailed)
 		return err
 	}
+	logger.Error("################# (andliu) GardenBindMounts:", nil, lager.Data{"mounts": mounts.GardenBindMounts})
 
 	n.bindMounts = mounts.GardenBindMounts
 

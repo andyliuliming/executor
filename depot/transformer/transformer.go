@@ -2,6 +2,7 @@ package transformer
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -153,8 +154,10 @@ func (t *transformer) StepFor(
 	logger lager.Logger,
 ) steps.Step {
 	a := action.GetValue()
+
 	switch actionModel := a.(type) {
 	case *models.RunAction:
+		logger.Error("################ (andliu) RunAction", nil)
 		return steps.NewRun(
 			container,
 			*actionModel,
@@ -170,6 +173,9 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.DownloadAction:
+		logger.Error("################ (andliu) DownloadAction", nil)
+		containerInString, _ := json.Marshal(container)
+		logger.Error("################ (andliu) containerInString", nil, lager.Data{"container": string(containerInString)})
 		return steps.NewDownload(
 			container,
 			*actionModel,
@@ -180,6 +186,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.UploadAction:
+		logger.Error("################ (andliu) UploadAction", nil)
 		return steps.NewUpload(
 			container,
 			*actionModel,
@@ -192,6 +199,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.EmitProgressAction:
+		logger.Error("################ (andliu) EmitProgressAction", nil)
 		return steps.NewEmitProgress(
 			t.StepFor(
 				logStreamer,
@@ -212,6 +220,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.TimeoutAction:
+		logger.Error("################ (andliu) TimeoutAction", nil)
 		return steps.NewTimeout(
 			t.StepFor(
 				logStreamer.WithSource(actionModel.LogSource),
@@ -229,6 +238,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.TryAction:
+		logger.Error("################ (andliu) TryAction", nil)
 		return steps.NewTry(
 			t.StepFor(
 				logStreamer.WithSource(actionModel.LogSource),
@@ -245,6 +255,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.ParallelAction:
+		logger.Error("################ (andliu) ParallelAction", nil)
 		subSteps := make([]steps.Step, len(actionModel.Actions))
 		for i, action := range actionModel.Actions {
 			var subStep steps.Step
@@ -282,6 +293,7 @@ func (t *transformer) StepFor(
 		return steps.NewParallel(subSteps)
 
 	case *models.CodependentAction:
+		logger.Error("################ (andliu) CodependentAction", nil)
 		subSteps := make([]steps.Step, len(actionModel.Actions))
 		for i, action := range actionModel.Actions {
 			var subStep steps.Step
@@ -320,6 +332,7 @@ func (t *transformer) StepFor(
 		return steps.NewCodependent(subSteps, errorOnExit, false)
 
 	case *models.SerialAction:
+		logger.Error("################ (andliu) SerialAction", nil)
 		subSteps := make([]steps.Step, len(actionModel.Actions))
 		for i, action := range actionModel.Actions {
 			subSteps[i] = t.StepFor(
