@@ -30,6 +30,7 @@ func TempNewContainerReaper(logger lager.Logger, config *ContainerConfig, clock 
 		reapingLock: reapingLock,
 	}
 }
+
 func newContainerReaper(logger lager.Logger, config *ContainerConfig, clock clock.Clock, containers *nodeMap, gardenClient garden.Client, reapingLock *sync.RWMutex) *containerReaper {
 	return &containerReaper{
 		logger:       logger,
