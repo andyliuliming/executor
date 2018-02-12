@@ -19,6 +19,17 @@ type containerReaper struct {
 	reapingLock *sync.RWMutex
 }
 
+func TempNewContainerReaper(logger lager.Logger, config *ContainerConfig, clock clock.Clock, containers *nodeMap, gardenClient garden.Client, reapingLock *sync.RWMutex) *containerReaper {
+	return &containerReaper{
+		logger:       logger,
+		config:       config,
+		clock:        clock,
+		containers:   containers,
+		gardenClient: gardenClient,
+
+		reapingLock: reapingLock,
+	}
+}
 func newContainerReaper(logger lager.Logger, config *ContainerConfig, clock clock.Clock, containers *nodeMap, gardenClient garden.Client, reapingLock *sync.RWMutex) *containerReaper {
 	return &containerReaper{
 		logger:       logger,

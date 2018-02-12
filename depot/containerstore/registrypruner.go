@@ -14,6 +14,14 @@ type registryPruner struct {
 	containers *nodeMap
 }
 
+func TempNewRegistryPruner(logger lager.Logger, config *ContainerConfig, clock clock.Clock, containers *nodeMap) *registryPruner {
+	return &registryPruner{
+		logger:     logger,
+		config:     config,
+		clock:      clock,
+		containers: containers,
+	}
+}
 func newRegistryPruner(logger lager.Logger, config *ContainerConfig, clock clock.Clock, containers *nodeMap) *registryPruner {
 	return &registryPruner{
 		logger:     logger,
