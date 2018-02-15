@@ -186,6 +186,8 @@ var DefaultConfiguration = ExecutorConfig{
 	CSIMountRootDir:                    "/var/vcap/data/csimountroot",
 }
 
+// check whether it's a virtual cell and build the different
+
 func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRootFS string, metronClient loggingclient.IngressClient, clock clock.Clock) (executor.Client, grouper.Members, error) {
 	postSetupHook, err := shlex.Split(config.PostSetupHook)
 	if err != nil {
