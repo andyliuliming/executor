@@ -28,6 +28,7 @@ import (
 	"code.cloudfoundry.org/executor/depot/metrics"
 	"code.cloudfoundry.org/executor/depot/transformer"
 	"code.cloudfoundry.org/executor/depot/uploader"
+	"code.cloudfoundry.org/executor/depot/vci/vgarden"
 	"code.cloudfoundry.org/executor/gardenhealth"
 	"code.cloudfoundry.org/executor/guidgen"
 	"code.cloudfoundry.org/executor/initializer/configuration"
@@ -77,64 +78,72 @@ func (s systemcertsRetriever) SystemCerts() *x509.CertPool {
 	return caCertPool.AsX509CertPool()
 }
 
+type ContainerProviderConfig struct {
+	Id             string `json:"id"`
+	Secret         string `json:"secret"`
+	OptionalParam1 string `json:"optional_param_1,omitempty"`
+}
+
 type ExecutorConfig struct {
-	AutoDiskOverheadMB                 int                   `json:"auto_disk_capacity_overhead_mb"`
-	CachePath                          string                `json:"cache_path,omitempty"`
-	ContainerInodeLimit                uint64                `json:"container_inode_limit,omitempty"`
-	ContainerMaxCpuShares              uint64                `json:"container_max_cpu_shares,omitempty"`
-	ContainerMetricsReportInterval     durationjson.Duration `json:"container_metrics_report_interval,omitempty"`
-	ContainerOwnerName                 string                `json:"container_owner_name,omitempty"`
-	ContainerReapInterval              durationjson.Duration `json:"container_reap_interval,omitempty"`
-	CreateWorkPoolSize                 int                   `json:"create_work_pool_size,omitempty"`
-	DeleteWorkPoolSize                 int                   `json:"delete_work_pool_size,omitempty"`
-	DiskMB                             string                `json:"disk_mb,omitempty"`
-	EnableDeclarativeHealthcheck       bool                  `json:"enable_declarative_healthcheck,omitempty"`
-	DeclarativeHealthcheckPath         string                `json:"declarative_healthcheck_path,omitempty"`
-	EnableContainerProxy               bool                  `json:"enable_container_proxy",omitempty`
-	EnvoyConfigRefreshDelay            durationjson.Duration `json:"envoy_config_refresh_delay"`
-	EnvoyDrainTimeout                  durationjson.Duration `json:"envoy_drain_timeout"`
-	ProxyMemoryAllocationMB            int                   `json:"proxy_memory_allocation_mb",omitempty`
-	ContainerProxyPath                 string                `json:"container_proxy_path,omitempty"`
-	ContainerProxyConfigPath           string                `json:"container_proxy_config_path,omitempty"`
-	ExportNetworkEnvVars               bool                  `json:"export_network_env_vars,omitempty"`
-	GardenAddr                         string                `json:"garden_addr,omitempty"`
-	GardenHealthcheckCommandRetryPause durationjson.Duration `json:"garden_healthcheck_command_retry_pause,omitempty"`
-	GardenHealthcheckEmissionInterval  durationjson.Duration `json:"garden_healthcheck_emission_interval,omitempty"`
-	GardenHealthcheckInterval          durationjson.Duration `json:"garden_healthcheck_interval,omitempty"`
-	GardenHealthcheckProcessArgs       []string              `json:"garden_healthcheck_process_args,omitempty"`
-	GardenHealthcheckProcessDir        string                `json:"garden_healthcheck_process_dir"`
-	GardenHealthcheckProcessEnv        []string              `json:"garden_healthcheck_process_env,omitempty"`
-	GardenHealthcheckProcessPath       string                `json:"garden_healthcheck_process_path"`
-	GardenHealthcheckProcessUser       string                `json:"garden_healthcheck_process_user"`
-	GardenHealthcheckTimeout           durationjson.Duration `json:"garden_healthcheck_timeout,omitempty"`
-	GardenNetwork                      string                `json:"garden_network,omitempty"`
-	GracefulShutdownInterval           durationjson.Duration `json:"graceful_shutdown_interval,omitempty"`
-	HealthCheckContainerOwnerName      string                `json:"healthcheck_container_owner_name,omitempty"`
-	HealthCheckWorkPoolSize            int                   `json:"healthcheck_work_pool_size,omitempty"`
-	HealthyMonitoringInterval          durationjson.Duration `json:"healthy_monitoring_interval,omitempty"`
-	InstanceIdentityCAPath             string                `json:"instance_identity_ca_path,omitempty"`
-	InstanceIdentityCredDir            string                `json:"instance_identity_cred_dir,omitempty"`
-	InstanceIdentityPrivateKeyPath     string                `json:"instance_identity_private_key_path,omitempty"`
-	InstanceIdentityValidityPeriod     durationjson.Duration `json:"instance_identity_validity_period,omitempty"`
-	MaxCacheSizeInBytes                uint64                `json:"max_cache_size_in_bytes,omitempty"`
-	MaxConcurrentDownloads             int                   `json:"max_concurrent_downloads,omitempty"`
-	MemoryMB                           string                `json:"memory_mb,omitempty"`
-	MetricsWorkPoolSize                int                   `json:"metrics_work_pool_size,omitempty"`
-	PathToCACertsForDownloads          string                `json:"path_to_ca_certs_for_downloads"`
-	PathToTLSCert                      string                `json:"path_to_tls_cert"`
-	PathToTLSKey                       string                `json:"path_to_tls_key"`
-	PathToTLSCACert                    string                `json:"path_to_tls_ca_cert"`
-	PostSetupHook                      string                `json:"post_setup_hook"`
-	PostSetupUser                      string                `json:"post_setup_user"`
-	ReadWorkPoolSize                   int                   `json:"read_work_pool_size,omitempty"`
-	ReservedExpirationTime             durationjson.Duration `json:"reserved_expiration_time,omitempty"`
-	SkipCertVerify                     bool                  `json:"skip_cert_verify,omitempty"`
-	TempDir                            string                `json:"temp_dir,omitempty"`
-	TrustedSystemCertificatesPath      string                `json:"trusted_system_certificates_path"`
-	UnhealthyMonitoringInterval        durationjson.Duration `json:"unhealthy_monitoring_interval,omitempty"`
-	VolmanDriverPaths                  string                `json:"volman_driver_paths"`
-	CSIPaths                           []string              `json:"csi_paths"`
-	CSIMountRootDir                    string                `json:"csi_mount_root_dir"`
+	AutoDiskOverheadMB                 int                     `json:"auto_disk_capacity_overhead_mb"`
+	CachePath                          string                  `json:"cache_path,omitempty"`
+	ContainerInodeLimit                uint64                  `json:"container_inode_limit,omitempty"`
+	ContainerMaxCpuShares              uint64                  `json:"container_max_cpu_shares,omitempty"`
+	ContainerMetricsReportInterval     durationjson.Duration   `json:"container_metrics_report_interval,omitempty"`
+	ContainerOwnerName                 string                  `json:"container_owner_name,omitempty"`
+	ContainerReapInterval              durationjson.Duration   `json:"container_reap_interval,omitempty"`
+	CreateWorkPoolSize                 int                     `json:"create_work_pool_size,omitempty"`
+	DeleteWorkPoolSize                 int                     `json:"delete_work_pool_size,omitempty"`
+	DiskMB                             string                  `json:"disk_mb,omitempty"`
+	EnableDeclarativeHealthcheck       bool                    `json:"enable_declarative_healthcheck,omitempty"`
+	DeclarativeHealthcheckPath         string                  `json:"declarative_healthcheck_path,omitempty"`
+	EnableContainerProxy               bool                    `json:"enable_container_proxy",omitempty`
+	EnvoyConfigRefreshDelay            durationjson.Duration   `json:"envoy_config_refresh_delay"`
+	EnvoyDrainTimeout                  durationjson.Duration   `json:"envoy_drain_timeout"`
+	ProxyMemoryAllocationMB            int                     `json:"proxy_memory_allocation_mb",omitempty`
+	ContainerProxyPath                 string                  `json:"container_proxy_path,omitempty"`
+	ContainerProxyConfigPath           string                  `json:"container_proxy_config_path,omitempty"`
+	ExportNetworkEnvVars               bool                    `json:"export_network_env_vars,omitempty"`
+	GardenAddr                         string                  `json:"garden_addr,omitempty"`
+	GardenHealthcheckCommandRetryPause durationjson.Duration   `json:"garden_healthcheck_command_retry_pause,omitempty"`
+	GardenHealthcheckEmissionInterval  durationjson.Duration   `json:"garden_healthcheck_emission_interval,omitempty"`
+	GardenHealthcheckInterval          durationjson.Duration   `json:"garden_healthcheck_interval,omitempty"`
+	GardenHealthcheckProcessArgs       []string                `json:"garden_healthcheck_process_args,omitempty"`
+	GardenHealthcheckProcessDir        string                  `json:"garden_healthcheck_process_dir"`
+	GardenHealthcheckProcessEnv        []string                `json:"garden_healthcheck_process_env,omitempty"`
+	GardenHealthcheckProcessPath       string                  `json:"garden_healthcheck_process_path"`
+	GardenHealthcheckProcessUser       string                  `json:"garden_healthcheck_process_user"`
+	GardenHealthcheckTimeout           durationjson.Duration   `json:"garden_healthcheck_timeout,omitempty"`
+	GardenNetwork                      string                  `json:"garden_network,omitempty"`
+	GracefulShutdownInterval           durationjson.Duration   `json:"graceful_shutdown_interval,omitempty"`
+	HealthCheckContainerOwnerName      string                  `json:"healthcheck_container_owner_name,omitempty"`
+	HealthCheckWorkPoolSize            int                     `json:"healthcheck_work_pool_size,omitempty"`
+	HealthyMonitoringInterval          durationjson.Duration   `json:"healthy_monitoring_interval,omitempty"`
+	InstanceIdentityCAPath             string                  `json:"instance_identity_ca_path,omitempty"`
+	InstanceIdentityCredDir            string                  `json:"instance_identity_cred_dir,omitempty"`
+	InstanceIdentityPrivateKeyPath     string                  `json:"instance_identity_private_key_path,omitempty"`
+	InstanceIdentityValidityPeriod     durationjson.Duration   `json:"instance_identity_validity_period,omitempty"`
+	MaxCacheSizeInBytes                uint64                  `json:"max_cache_size_in_bytes,omitempty"`
+	MaxConcurrentDownloads             int                     `json:"max_concurrent_downloads,omitempty"`
+	MemoryMB                           string                  `json:"memory_mb,omitempty"`
+	MetricsWorkPoolSize                int                     `json:"metrics_work_pool_size,omitempty"`
+	PathToCACertsForDownloads          string                  `json:"path_to_ca_certs_for_downloads"`
+	PathToTLSCert                      string                  `json:"path_to_tls_cert"`
+	PathToTLSKey                       string                  `json:"path_to_tls_key"`
+	PathToTLSCACert                    string                  `json:"path_to_tls_ca_cert"`
+	PostSetupHook                      string                  `json:"post_setup_hook"`
+	PostSetupUser                      string                  `json:"post_setup_user"`
+	ReadWorkPoolSize                   int                     `json:"read_work_pool_size,omitempty"`
+	ReservedExpirationTime             durationjson.Duration   `json:"reserved_expiration_time,omitempty"`
+	SkipCertVerify                     bool                    `json:"skip_cert_verify,omitempty"`
+	TempDir                            string                  `json:"temp_dir,omitempty"`
+	TrustedSystemCertificatesPath      string                  `json:"trusted_system_certificates_path"`
+	UnhealthyMonitoringInterval        durationjson.Duration   `json:"unhealthy_monitoring_interval,omitempty"`
+	VolmanDriverPaths                  string                  `json:"volman_driver_paths"`
+	CSIPaths                           []string                `json:"csi_paths"`
+	CSIMountRootDir                    string                  `json:"csi_mount_root_dir"`
+	ContainerServiceProvider           string                  `json:"container_service_provider,omitempty"`
+	ContainerProviderConfig            ContainerProviderConfig `json:"azure_container_provider_cfg,omitempty"`
 }
 
 const (
@@ -184,6 +193,7 @@ var DefaultConfiguration = ExecutorConfig{
 	EnvoyDrainTimeout:                  durationjson.Duration(15 * time.Minute),
 	CSIPaths:                           []string{"/var/vcap/data/csiplugins"},
 	CSIMountRootDir:                    "/var/vcap/data/csimountroot",
+	ContainerServiceProvider:           "garden",
 }
 
 func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRootFS string, metronClient loggingclient.IngressClient, clock clock.Clock) (executor.Client, grouper.Members, error) {
@@ -193,7 +203,10 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 		return nil, grouper.Members{}, err
 	}
 
-	gardenClient := GardenClient.New(GardenConnection.New(config.GardenNetwork, config.GardenAddr))
+	// mock gardenClient.
+	gardenClientInner := GardenClient.New(GardenConnection.New(config.GardenNetwork, config.GardenAddr))
+	gardenClient := vgarden.NewWithAdapter(gardenClientInner, logger)
+
 	err = waitForGarden(logger, gardenClient, metronClient, clock)
 	if err != nil {
 		return nil, nil, err
@@ -206,7 +219,7 @@ func Initialize(logger lager.Logger, config ExecutorConfig, gardenHealthcheckRoo
 
 	destroyContainers(gardenClient, containersFetcher, logger)
 
-	workDir := setupWorkDir(logger, config.TempDir)
+	workDir := setupWorkDir(logger, config.TempDir) // /var/vcap/data/executer-work
 
 	healthCheckWorkPool, err := workpool.NewWorkPool(config.HealthCheckWorkPoolSize)
 	if err != nil {

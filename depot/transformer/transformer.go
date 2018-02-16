@@ -155,6 +155,7 @@ func (t *transformer) StepFor(
 	a := action.GetValue()
 	switch actionModel := a.(type) {
 	case *models.RunAction:
+		logger.Info("############(andliu) run action", lager.Data{"actionModel": *actionModel})
 		return steps.NewRun(
 			container,
 			*actionModel,
@@ -170,6 +171,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.DownloadAction:
+		logger.Info("############(andliu) download action", lager.Data{"actionModel": *actionModel})
 		return steps.NewDownload(
 			container,
 			*actionModel,
@@ -180,6 +182,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.UploadAction:
+		logger.Info("############(andliu) upload action", lager.Data{"actionModel": *actionModel})
 		return steps.NewUpload(
 			container,
 			*actionModel,

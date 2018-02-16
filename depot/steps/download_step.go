@@ -91,7 +91,7 @@ func (step *downloadStep) perform() error {
 		step.emitError(fmt.Sprintf("%s\n", errString))
 		return NewEmittableError(err, errString)
 	}
-
+	// extract the tar to the target model.To
 	err = step.streamIn(step.model.To, downloadedFile)
 	if err != nil {
 		var errString string
@@ -142,7 +142,7 @@ func (step *downloadStep) fetch() (io.ReadCloser, int64, error) {
 
 func (step *downloadStep) streamIn(destination string, reader io.ReadCloser) error {
 	step.logger.Info("stream-in-starting")
-
+	step.logger.Info("##########(andliu) streamIn:", lager.Data{"destination": destination})
 	// StreamIn will close the reader
 	err := step.container.StreamIn(garden.StreamInSpec{Path: destination, TarStream: reader, User: step.model.User})
 	if err != nil {

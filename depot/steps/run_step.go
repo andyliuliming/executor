@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/executor"
 	"code.cloudfoundry.org/executor/depot/log_streamer"
+	aci "code.cloudfoundry.org/executor/depot/vci/aci"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 )
@@ -111,7 +112,7 @@ func NewRunWithSidecar(
 
 func (step *runStep) Perform() error {
 	step.logger.Info("running")
-
+	aci.NewAciAdapter()
 	envVars := convertEnvironmentVariables(step.model.Env)
 
 	if step.exportNetworkEnvVars {

@@ -178,7 +178,7 @@ func (n *storeNode) Create(logger lager.Logger) error {
 
 		info.Env = append(info.Env, executor.EnvironmentVariable{Name: "CF_SYSTEM_CERT_PATH", Value: info.TrustedSystemCertificatesPath})
 	}
-
+	// not support it for now.
 	volumeMounts, err := n.mountVolumes(logger, info)
 	if err != nil {
 		logger.Error("failed-to-mount-volume", err)
@@ -210,6 +210,7 @@ func (n *storeNode) Create(logger lager.Logger) error {
 		})
 	}
 
+	logger.Info("##############(andliu) bindMounts:", lager.Data{"bindMounts": n.bindMounts})
 	fmt.Fprintf(logStreamer.Stdout(), "Creating container\n")
 	gardenContainer, err := n.createGardenContainer(logger, &info)
 	if err != nil {
@@ -295,11 +296,12 @@ func (n *storeNode) createGardenContainer(logger lager.Logger, info *executor.Co
 		}
 	}
 
+	// todo: upload the image to the private docker registry.
 	containerSpec := garden.ContainerSpec{
 		Handle:     info.Guid,
 		Privileged: info.Privileged,
 		Image: garden.ImageRef{
-			URI:      info.RootFSPath,
+			URI:      info.RootFSPath, //"rootfs": "/var/vcap/packages/cflinuxfs2/rootfs.tar"
 			Username: info.ImageUsername,
 			Password: info.ImagePassword,
 		},
@@ -326,6 +328,11 @@ func (n *storeNode) createGardenContainer(logger lager.Logger, info *executor.Co
 		NetOut:     netOutRules,
 	}
 
+	logger.Info("############(andliu) containerSpec:", lager.Data{"containerSpec": containerSpec})
+	// mock create container
+	// 1. mount azure file to some place
+	// 2. copy the mount files to the shares.
+	// 3. use the azure api to do the mounts
 	gardenContainer, err := createContainer(logger, containerSpec, n.gardenClient, n.metronClient)
 	if err != nil {
 		return nil, err
@@ -422,6 +429,7 @@ func (n *storeNode) Run(logger lager.Logger) error {
 		BindMounts:    n.bindMounts,
 		ProxyTLSPorts: proxyTLSPorts,
 	}
+	logger.Info("#################(andliu) gardenContainer: ", lager.Data{"gardenContainer": n.gardenContainer})
 	runner, err := n.transformer.StepsRunner(logger, n.info, n.gardenContainer, logStreamer, cfg)
 	if err != nil {
 		return err
