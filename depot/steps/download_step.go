@@ -163,21 +163,19 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
 
 	aciClient, err := aci.NewClient(azAuth)
-	// var containerGroupGot *aci.ContainerGroup
 	if err == nil {
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
 		if err == nil {
 			step.logger.Info("##########(andliu) download step in get container group.",
-				lager.Data{"code": code, "err": err, "containerGroupGot": containerGroupGot})
+				lager.Data{"code": code, "err": err, "containerGroupGot": *containerGroupGot})
 			// create a folder
 			vstore := vstore.NewVStore()
 			// handle = "downloadstep" // TODO remove this, hard code for consistent folder.
-			shareName, err := vstore.CreateFolder("downloadstep", step.model.To)
+			shareName, err := vstore.CreateFolder("downloadstep", destination)
 
 			executorEnv := model.GetExecutorEnvInstance()
 			if err == nil {
 				step.logger.Info("#########(andliu) shareName.", lager.Data{"shareName": shareName})
-				// containerGroupGot.ContainerGroupProperties
 				azureFile := &aci.AzureFileVolume{
 					ReadOnly:           false,
 					ShareName:          shareName,
