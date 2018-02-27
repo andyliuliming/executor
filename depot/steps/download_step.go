@@ -167,7 +167,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
 		if err == nil {
 			step.logger.Info("##########(andliu) download step in get container group.",
-				lager.Data{"code": code, "err": err, "containerGroupGot": *containerGroupGot})
+				lager.Data{"code": code, "err": err.Error(), "containerGroupGot": *containerGroupGot})
 			// create a folder
 			vstore := vstore.NewVStore()
 			// handle = "downloadstep" // TODO remove this, hard code for consistent folder.
@@ -200,7 +200,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 					containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts = append(
 						containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts, volumeMount)
 				}
-				step.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": containerGroupGot})
+				step.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
 				containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
 				retry := 0
 				for err != nil && retry < 10 {
