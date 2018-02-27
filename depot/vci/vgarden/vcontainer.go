@@ -2,10 +2,15 @@ package vgarden
 
 import (
 	"io"
+	"strings"
 	"time"
 
+	"code.cloudfoundry.org/executor/model"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/virtualcloudfoundry/goaci"
+	"github.com/virtualcloudfoundry/goaci/aci"
 )
 
 type VContainer struct {
@@ -74,6 +79,31 @@ func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 	// return container.connection.Run(container.handle, spec, io)
 	container.logger.Info("#########(andliu) run container with spec:", lager.Data{"spec": spec})
+	//
+	var azAuth *goaci.Authentication
+
+	executorEnv := model.GetExecutorEnvInstance()
+	config := executorEnv.Config.ContainerProviderConfig
+	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
+
+	aciClient, err := aci.NewClient(azAuth)
+	if err == nil {
+		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, container.inner.Handle())
+		container.logger.Info("#########(andliu) got container in vcontainer.", lager.Data{"cg": containerGroupGot, "err": err, "code": code})
+		for idx, _ := range containerGroupGot.Containers {
+			for _, envStr := range spec.Env {
+				splits := strings.Split(envStr, "=")
+				containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables =
+					append(containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables,
+						aci.EnvironmentVariable{Name: splits[0], Value: splits[1]})
+
+				containerGroupGot.Containers[idx].Command = []string{"env"}
+			}
+		}
+		aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+	} else {
+		container.logger.Info("########(andliu) Run in VContainer failed.", lager.Data{"err": err.Error()})
+	}
 	return container.inner.Run(spec, io)
 }
 
