@@ -90,6 +90,11 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	if err == nil {
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, container.inner.Handle())
 		container.logger.Info("#########(andliu) got container in vcontainer.", lager.Data{"cg": containerGroupGot, "err": err, "code": code})
+
+		for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+			containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+				executorEnv.Config.ContainerProviderConfig.StorageSecret
+		}
 		for idx, _ := range containerGroupGot.Containers {
 			for _, envStr := range spec.Env {
 				splits := strings.Split(envStr, "=")
@@ -100,6 +105,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				containerGroupGot.Containers[idx].Command = []string{"env"}
 			}
 		}
+		container.logger.Info("#########(andliu) container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
 		aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
 	} else {
 		container.logger.Info("########(andliu) Run in VContainer failed.", lager.Data{"err": err.Error()})
