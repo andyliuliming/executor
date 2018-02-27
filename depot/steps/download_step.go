@@ -143,18 +143,19 @@ func (step *downloadStep) fetch() (io.ReadCloser, int64, error) {
 		step.logger.Error("fetch-failed", err)
 		return nil, 0, err
 	}
-
+	step.logger.Info("########(andliu) fetch result.", lager.Data{"model": step.model})
 	step.logger.Info("fetch-complete", lager.Data{"size": downloadedSize})
 	return tarStream, downloadedSize, nil
 }
 
 func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) error {
-
 	// extract the tar to the target model.To
 	// TODO create one share folder for /tmp
 	// 1. get the container configs.
 	handle := step.container.Handle()
-	step.logger.Info("##########(andliu) perform download step.", lager.Data{"handle": handle})
+	step.logger.Info("##########(andliu) perform vStreamIn step.", lager.Data{
+		"handle":      handle,
+		"destination": destination})
 	var azAuth *goaci.Authentication
 
 	executorEnv := model.GetExecutorEnvInstance()
