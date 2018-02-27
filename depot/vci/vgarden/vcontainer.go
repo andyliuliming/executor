@@ -78,8 +78,9 @@ func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) 
 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 	// return container.connection.Run(container.handle, spec, io)
-	container.logger.Info("#########(andliu) run container with spec:", lager.Data{"spec": spec})
+	container.logger.Info("#########(andliu) vcontainer.go L81 run container with spec:", lager.Data{"spec": spec})
 	//
+	needSkip := false
 	var azAuth *goaci.Authentication
 
 	executorEnv := model.GetExecutorEnvInstance()
@@ -89,12 +90,13 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	aciClient, err := aci.NewClient(azAuth)
 	if err == nil {
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, container.inner.Handle())
-		container.logger.Info("#########(andliu) got container in vcontainer.", lager.Data{"cg": containerGroupGot, "err": err, "code": code})
+		container.logger.Info("#########(andliu) vcontainer.go L92 got container in vcontainer.", lager.Data{"cg": containerGroupGot, "err": err, "code": code})
 
 		for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
 			containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
 				executorEnv.Config.ContainerProviderConfig.StorageSecret
 		}
+
 		for idx, _ := range containerGroupGot.Containers {
 			for _, envStr := range spec.Env {
 				splits := strings.Split(envStr, "=")
