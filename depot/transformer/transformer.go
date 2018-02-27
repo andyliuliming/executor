@@ -155,6 +155,7 @@ func (t *transformer) StepFor(
 	a := action.GetValue()
 	switch actionModel := a.(type) {
 	case *models.RunAction:
+		logger.Info("############(andliu) run action", lager.Data{"actionModel": *actionModel})
 		return steps.NewRun(
 			container,
 			*actionModel,
@@ -170,6 +171,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.DownloadAction:
+		logger.Info("############(andliu) download action", lager.Data{"actionModel": *actionModel})
 		return steps.NewDownload(
 			container,
 			*actionModel,
@@ -180,6 +182,7 @@ func (t *transformer) StepFor(
 		)
 
 	case *models.UploadAction:
+		logger.Info("############(andliu) upload action", lager.Data{"actionModel": *actionModel})
 		return steps.NewUpload(
 			container,
 			*actionModel,
@@ -374,6 +377,7 @@ func (t *transformer) StepsRunner(
 	var substeps []steps.Step
 
 	if container.Setup != nil {
+		logger.Info("###########(andliu) StepsRunner setup is not nil")
 		setup = t.StepFor(
 			logStreamer,
 			container.Setup,
@@ -388,6 +392,7 @@ func (t *transformer) StepsRunner(
 	}
 
 	if len(t.postSetupHook) > 0 {
+		logger.Info("###########(andliu) StepsRunner postSetupHook>0")
 		actionModel := models.RunAction{
 			Path: t.postSetupHook[0],
 			Args: t.postSetupHook[1:],
@@ -415,6 +420,7 @@ func (t *transformer) StepsRunner(
 		return nil, err
 	}
 
+	logger.Info("###########(andliu) StepsRunner Action", lager.Data{"Action": *container.Action})
 	action = t.StepFor(
 		logStreamer,
 		container.Action,
@@ -468,6 +474,7 @@ func (t *transformer) StepsRunner(
 		)
 		substeps = append(substeps, monitor)
 	} else if container.Monitor != nil {
+		logger.Info("###########(andliu) StepsRunner Monitor not nil")
 		overrideSuppressLogOutput(container.Monitor)
 		monitor = steps.NewMonitor(
 			func() steps.Step {
@@ -496,6 +503,7 @@ func (t *transformer) StepsRunner(
 		substeps = append(substeps, monitor)
 	}
 
+	logger.Info("#############(andliu) substeps", lager.Data{"substeps": substeps})
 	if len(substeps) > 1 {
 		longLivedAction = steps.NewCodependent(substeps, false, false)
 	} else {
@@ -523,12 +531,14 @@ func (t *transformer) StepsRunner(
 		cumulativeStep = longLivedAction
 	} else {
 		if postSetup == nil {
+			logger.Info("###########(andliu) StepsRunner postSetup not nil")
 			cumulativeStep = steps.NewSerial([]steps.Step{setup, longLivedAction})
 		} else {
+			logger.Info("###########(andliu) StepsRunner postSetup not nil")
 			cumulativeStep = steps.NewSerial([]steps.Step{setup, postSetup, longLivedAction})
 		}
 	}
-
+	logger.Info("#############(andliu) cumulativeStep", lager.Data{"cumulativeStep": cumulativeStep})
 	return newStepRunner(cumulativeStep, hasStartedRunning), nil
 }
 

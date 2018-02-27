@@ -99,6 +99,7 @@ func (bm *dependencyManager) downloadCachedDependency(logger lager.Logger, mount
 	}
 
 	logger.Debug("fetching-cache-dependency", lager.Data{"download-url": downloadURL.String(), "cache-key": mount.CacheKey})
+	// dirPath is used as the mount point.(path on host)
 	dirPath, downloadedSize, err := bm.cache.FetchAsDirectory(
 		logger.Session("downloader"),
 		downloadURL,

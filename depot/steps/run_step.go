@@ -111,7 +111,6 @@ func NewRunWithSidecar(
 
 func (step *runStep) Perform() error {
 	step.logger.Info("running")
-
 	envVars := convertEnvironmentVariables(step.model.Env)
 
 	if step.exportNetworkEnvVars {

@@ -4,13 +4,19 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"time"
 
 	"code.cloudfoundry.org/bbs/models"
 	"code.cloudfoundry.org/bytefmt"
 	"code.cloudfoundry.org/cacheddownloader"
 	"code.cloudfoundry.org/executor/depot/log_streamer"
+	"code.cloudfoundry.org/executor/depot/vci/vstore"
+	"code.cloudfoundry.org/executor/model"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/virtualcloudfoundry/goaci"
+	"github.com/virtualcloudfoundry/goaci/aci"
 )
 
 type downloadStep struct {
@@ -92,6 +98,8 @@ func (step *downloadStep) perform() error {
 		return NewEmittableError(err, errString)
 	}
 
+	err = step.vStreamIn(step.model.To, downloadedFile)
+
 	err = step.streamIn(step.model.To, downloadedFile)
 	if err != nil {
 		var errString string
@@ -140,9 +148,88 @@ func (step *downloadStep) fetch() (io.ReadCloser, int64, error) {
 	return tarStream, downloadedSize, nil
 }
 
+func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) error {
+
+	// extract the tar to the target model.To
+	// TODO create one share folder for /tmp
+	// 1. get the container configs.
+	handle := step.container.Handle()
+	step.logger.Info("##########(andliu) perform download step.", lager.Data{"handle": handle})
+	var azAuth *goaci.Authentication
+
+	executorEnv := model.GetExecutorEnvInstance()
+	config := executorEnv.Config.ContainerProviderConfig
+	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
+
+	aciClient, err := aci.NewClient(azAuth)
+	// var containerGroupGot *aci.ContainerGroup
+	if err == nil {
+		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
+		if err == nil {
+			step.logger.Info("##########(andliu) download step in get container group.",
+				lager.Data{"code": code, "err": err, "containerGroupGot": containerGroupGot})
+			// create a folder
+			vstore := vstore.NewVStore()
+			// handle = "downloadstep" // TODO remove this, hard code for consistent folder.
+			shareName, err := vstore.CreateFolder("downloadstep", step.model.To)
+
+			executorEnv := model.GetExecutorEnvInstance()
+			if err == nil {
+				step.logger.Info("#########(andliu) shareName.", lager.Data{"shareName": shareName})
+				// containerGroupGot.ContainerGroupProperties
+				azureFile := &aci.AzureFileVolume{
+					ReadOnly:           false,
+					ShareName:          shareName,
+					StorageAccountName: executorEnv.Config.ContainerProviderConfig.StorageId,
+					StorageAccountKey:  executorEnv.Config.ContainerProviderConfig.StorageSecret,
+				}
+				newVolume := aci.Volume{Name: shareName, AzureFile: azureFile}
+				containerGroupGot.ContainerGroupProperties.Volumes = append(
+					containerGroupGot.ContainerGroupProperties.Volumes, newVolume)
+				volumeMount := aci.VolumeMount{
+					Name:      shareName,
+					MountPath: destination,
+					ReadOnly:  false,
+				}
+
+				// save back the storage account key
+				for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+					containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+						executorEnv.Config.ContainerProviderConfig.StorageSecret
+				}
+				for idx, _ := range containerGroupGot.ContainerGroupProperties.Containers {
+					containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts = append(
+						containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts, volumeMount)
+				}
+				step.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": containerGroupGot})
+				containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+				retry := 0
+				for err != nil && retry < 10 {
+					step.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+					time.Sleep(time.Second * 20)
+					containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+					retry++
+				}
+				if err == nil {
+					step.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
+				} else {
+					step.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+				}
+			} else {
+				step.logger.Info("#########(andliu) shareName failed.", lager.Data{"err": err.Error()})
+			}
+		} else {
+			step.logger.Info("##########(andliu) GetContainerGroup.", lager.Data{"err": err.Error()})
+		}
+	} else {
+		step.logger.Info("##########(andliu) new client.", lager.Data{"err": err.Error()})
+	}
+	return nil
+}
+
 func (step *downloadStep) streamIn(destination string, reader io.ReadCloser) error {
 	step.logger.Info("stream-in-starting")
-
+	step.logger.Info("##########(andliu) streamIn:", lager.Data{"destination": destination})
 	// StreamIn will close the reader
 	err := step.container.StreamIn(garden.StreamInSpec{Path: destination, TarStream: reader, User: step.model.User})
 	if err != nil {
