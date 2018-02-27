@@ -175,7 +175,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
 		if err == nil {
 			step.logger.Info("##########(andliu) download step in get container group.",
-				lager.Data{"code": code, "err": err.Error(), "containerGroupGot": *containerGroupGot})
+				lager.Data{"code": code, "containerGroupGot": *containerGroupGot})
 			// create a folder
 			vstore := vstore.NewVStore()
 			// handle = "downloadstep" // TODO remove this, hard code for consistent folder.
