@@ -152,10 +152,18 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 	// extract the tar to the target model.To
 	// TODO create one share folder for /tmp
 	// 1. get the container configs.
+	var finaldestination string
+	if destination == "." {
+		// workaround, we guess . is the /home/vcap.
+		// will extract the droplet file to this folder.
+		finaldestination = "/home/vcap"
+	} else {
+		finaldestination = destination
+	}
 	handle := step.container.Handle()
 	step.logger.Info("##########(andliu) perform vStreamIn step.", lager.Data{
 		"handle":      handle,
-		"destination": destination})
+		"destination": finaldestination})
 	var azAuth *goaci.Authentication
 
 	executorEnv := model.GetExecutorEnvInstance()
@@ -171,7 +179,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 			// create a folder
 			vstore := vstore.NewVStore()
 			// handle = "downloadstep" // TODO remove this, hard code for consistent folder.
-			shareName, err := vstore.CreateFolder("downloadstep", destination)
+			shareName, err := vstore.CreateFolder("downloadstep", finaldestination)
 
 			executorEnv := model.GetExecutorEnvInstance()
 			if err == nil {
@@ -187,7 +195,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 					containerGroupGot.ContainerGroupProperties.Volumes, newVolume)
 				volumeMount := aci.VolumeMount{
 					Name:      shareName,
-					MountPath: destination,
+					MountPath: finaldestination,
 					ReadOnly:  false,
 				}
 
