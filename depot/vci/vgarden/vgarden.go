@@ -190,11 +190,12 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 
 		// hard code a resource group name here.
 		containerGroupCreated, err := c.aciClient.CreateContainerGroup(executorEnv.ResourceGroup, spec.Handle, containerGroup)
-		if containerGroupCreated != nil {
+		if err == nil {
 			// TODO wait for the command exit.
 			c.logger.Info("###########(andliu) createcontainergroup succeeded.", lager.Data{"containerGroupCreated": containerGroupCreated})
+		} else {
+			c.logger.Info("###########(andliu) CreateContainerGroup failed.", lager.Data{"err": err.Error()})
 		}
-		c.logger.Info("###########(andliu) CreateContainerGroup failed.", lager.Data{"err": err.Error()})
 	}
 
 	return c.inner.Create(spec)
