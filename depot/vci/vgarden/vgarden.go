@@ -165,12 +165,13 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		handle = "vgarden" // TODO remove this, hard code for consistent folder.
 		volumes, volumeMounts, err := c.prepareVirtualShares(handle, spec.BindMounts)
 		c.logger.Info("###########(andliu) prepareVirtualShares result.",
-			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts, "err": err.Error()})
+			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})
 		if err == nil {
 			containerGroup.ContainerGroupProperties.Volumes = volumes
 			containerProperties.VolumeMounts = volumeMounts
 		} else {
 			// handle this error case
+			c.logger.Info("##########(andliu) prepare virtual shares failed.", lager.Data{"err": err.Error()})
 		}
 		// spec.
 
