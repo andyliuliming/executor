@@ -112,10 +112,6 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		executorEnv := model.GetExecutorEnvInstance()
 		containerGroup.Location = executorEnv.Config.ContainerProviderConfig.Location
 		containerGroup.ContainerGroupProperties.OsType = aci.Linux
-		containerGroup.IPAddress = &aci.IPAddress{
-			Type:  aci.Public,
-			Ports: make([]aci.Port, 0),
-		}
 
 		// TODO add the ports.
 		var containerProperties aci.ContainerProperties
@@ -140,7 +136,18 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 `
 		containerProperties.Command = append(containerProperties.Command, prepareScript)
 		// "/bin/bash", "-c"
+		if len(spec.NetIn) > 0 {
+			containerGroup.IPAddress = &aci.IPAddress{
+				Type:  aci.Public,
+				Ports: make([]aci.Port, len(spec.NetIn)),
+			}
+		}
 		for _, p := range spec.NetIn {
+			containerGroup.IPAddress.Ports =
+				append(containerGroup.IPAddress.Ports, aci.Port{
+					Protocol: aci.TCP,
+					Port:     int32(p.HostPort),
+				})
 			containerPort := aci.ContainerPort{
 				Port:     int32(p.ContainerPort),
 				Protocol: aci.ContainerNetworkProtocolTCP,
