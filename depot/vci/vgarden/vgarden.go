@@ -112,7 +112,10 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		executorEnv := model.GetExecutorEnvInstance()
 		containerGroup.Location = executorEnv.Config.ContainerProviderConfig.Location
 		containerGroup.ContainerGroupProperties.OsType = aci.Linux
-		containerGroup.IPAddress = &aci.IPAddress{Type: aci.Public}
+		containerGroup.IPAddress = &aci.IPAddress{
+			Type:  aci.Public,
+			Ports: make([]aci.Port, 0),
+		}
 
 		// TODO add the ports.
 		var containerProperties aci.ContainerProperties
