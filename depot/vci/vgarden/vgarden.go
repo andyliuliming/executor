@@ -131,6 +131,8 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 	ls /home/vcap
 	echo "#####now remove /home/vcap/app"
 	rm -rf /home/vcap/app
+	echo "#####check /home/vcap/app gone"
+	ls /home/vcap
 `
 		containerProperties.Command = append(containerProperties.Command, prepareScript)
 
