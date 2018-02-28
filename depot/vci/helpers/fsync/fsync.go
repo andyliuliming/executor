@@ -17,6 +17,10 @@ const (
 	defaultRsyncCommand string = "rsync"
 )
 
+func NewFSync() FSync {
+	return &fSync{}
+}
+
 func (f *fSync) CopyFolder(src, dest string) error {
 	// 	const stagerScript = `
 	// 	set -e
