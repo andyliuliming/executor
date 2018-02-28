@@ -56,27 +56,27 @@ func (c *client) Ping() error {
 	// } else {
 	// 	c.logger.Error("Ping", err, lager.Data{"code": code})
 	// }
+	c.logger.Info("##########(andliu) Ping.")
 	return c.inner.Ping()
 }
 
 func (c *client) Capacity() (garden.Capacity, error) {
-	// return client.connection.Capacity()
-
-	// return garden.Capacity{}, nil
-
 	c.logger.Info("########(andliu) Capacity")
 	return c.inner.Capacity()
 }
 
 func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMount) ([]aci.Volume, []aci.VolumeMount, error) {
 	vstore := vstore.NewVStore()
-	// volumeMounts := make([]aci.VolumeMount, len(bindMounts))
 	var volumeMounts []aci.VolumeMount
 	var volumes []aci.Volume
 	for _, bindMount := range bindMounts {
 		shareName, err := vstore.CreateFolder(handle, bindMount.DstPath)
 		if err == nil {
 			c.logger.Info("######(andliu) TODO copy to azure share.", lager.Data{"bindMount": bindMount, "ContainerProviderConfig": model.GetExecutorEnvInstance().Config.ContainerProviderConfig})
+			// 1. mount the share created in the virtual diego cell
+			// 2. copy all the files in the bindMount.SrcPath to that share.
+			// 3. unmount it.
+
 			azureFile := &aci.AzureFileVolume{
 				ReadOnly:           false,
 				ShareName:          shareName,
@@ -112,7 +112,8 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		executorEnv := model.GetExecutorEnvInstance()
 		containerGroup.Location = executorEnv.Config.ContainerProviderConfig.Location
 		containerGroup.ContainerGroupProperties.OsType = aci.Linux
-
+		containerGroup.IPAddress.Type = aci.Public
+		// TODO add the ports.
 		var containerProperties aci.ContainerProperties
 		containerProperties.Image = "cloudfoundry/cflinuxfs2"
 
@@ -134,7 +135,6 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 	ls /home/vcap
 `
 		containerProperties.Command = append(containerProperties.Command, prepareScript)
-
 		// "/bin/bash", "-c"
 		for _, p := range spec.NetIn {
 			containerPort := aci.ContainerPort{

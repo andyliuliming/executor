@@ -214,7 +214,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 				retry := 0
 				for err != nil && retry < 10 {
 					step.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
-					time.Sleep(time.Second * 20)
+					time.Sleep(60 * time.Second)
 					containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
 					retry++
 				}

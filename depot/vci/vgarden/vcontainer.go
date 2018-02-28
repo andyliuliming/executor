@@ -79,8 +79,6 @@ func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 	// return container.connection.Run(container.handle, spec, io)
 	container.logger.Info("#########(andliu) vcontainer.go L81 run container with spec:", lager.Data{"spec": spec})
-	//
-	// needSkip := false
 	var azAuth *goaci.Authentication
 
 	executorEnv := model.GetExecutorEnvInstance()
@@ -107,7 +105,14 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 
 				containerGroupGot.Containers[idx].Command = []string{"env"}
 			}
+			container.logger.Info("###########(andliu) prepare commands.", lager.Data{"path": spec.Path, "args": spec.Args})
+			// containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, spec.Path)
+			// for _, para := range spec.Args {
+			// 	containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, para)
+			// }
 		}
+		// prepare the commands.
+
 		container.logger.Info("#########(andliu) container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
 		aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
 	} else {
