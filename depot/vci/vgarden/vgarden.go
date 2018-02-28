@@ -25,11 +25,11 @@ type client struct {
 	logger    lager.Logger
 }
 
-func New() Client {
-	return &client{
-	// connection: connection,
-	}
-}
+// func New() Client {
+// 	return &client{
+// 	// connection: connection,
+// 	}
+// }
 
 func NewWithAdapter(gc GardenClient.Client, logger lager.Logger, config model.ContainerProviderConfig) Client {
 	var azAuth *goaci.Authentication
@@ -49,15 +49,13 @@ func NewWithAdapter(gc GardenClient.Client, logger lager.Logger, config model.Co
 }
 
 func (c *client) Ping() error {
-	// return client.connection.Ping()
-	// p.aciClient, err = aci.NewClient(azAuth)
-	c.logger.Info("##########(andliu) ping!!!")
-	containerGroupUsage, err, code := c.aciClient.ListContainerGroupUsage(c.config.Location)
-	if err == nil {
-		c.logger.Info("Ping", lager.Data{"code": code, "usage": containerGroupUsage})
-	} else {
-		c.logger.Error("Ping", err, lager.Data{"code": code})
-	}
+	// c.logger.Info("##########(andliu) ping!!!")
+	// containerGroupUsage, err, code := c.aciClient.ListContainerGroupUsage(c.config.Location)
+	// if err == nil {
+	// 	c.logger.Info("Ping", lager.Data{"code": code, "usage": containerGroupUsage})
+	// } else {
+	// 	c.logger.Error("Ping", err, lager.Data{"code": code})
+	// }
 	return c.inner.Ping()
 }
 
