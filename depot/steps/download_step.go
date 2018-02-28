@@ -199,7 +199,8 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 					MountPath: finaldestination,
 					ReadOnly:  false,
 				}
-
+				// vsync := helpers.NewVSync(step.logger)
+				// vsync.CopyFolderToAzureShare()
 				// save back the storage account key
 				for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
 					containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =

@@ -71,6 +71,7 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 	var volumes []aci.Volume
 	for _, bindMount := range bindMounts {
 		shareName, err := vstore.CreateFolder(handle, bindMount.DstPath)
+		c.logger.Info("#########(andliu) create folder.", lager.Data{"handle": handle, "bindMount": bindMount})
 		if err == nil {
 			c.logger.Info("######(andliu) TODO copy to azure share.", lager.Data{"bindMount": bindMount, "ContainerProviderConfig": model.GetExecutorEnvInstance().Config.ContainerProviderConfig})
 			// 1. mount the share created in the virtual diego cell
@@ -96,7 +97,10 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		} else {
-			c.logger.Info("########(andliu) craete folder failed.", lager.Data{"err": err.Error()})
+			c.logger.Info("########(andliu) create folder failed.", lager.Data{
+				// "handle":      handle,
+				// "destination": bindMount.DstPath,
+				"err": err.Error()})
 			// TODO handle the error case.
 		}
 	}

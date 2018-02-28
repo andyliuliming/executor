@@ -1,4 +1,4 @@
-package helpers
+package helpers // import "code.cloudfoundry.org/executor/depot/vci/helpers"
 
 import (
 	"fmt"
