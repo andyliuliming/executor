@@ -96,6 +96,7 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		} else {
+			c.logger.Info("########(andliu) craete folder failed.", lager.Data{"err": err.Error()})
 			// TODO handle the error case.
 		}
 	}
@@ -162,7 +163,8 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		handle := spec.Handle
 		handle = "vgarden" // TODO remove this, hard code for consistent folder.
 		volumes, volumeMounts, err := c.prepareVirtualShares(handle, spec.BindMounts)
-		c.logger.Info("###########(andliu) prepareVirtualShares result.", lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})
+		c.logger.Info("###########(andliu) prepareVirtualShares result.",
+			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts, "err": err.Error()})
 		if err == nil {
 			containerGroup.ContainerGroupProperties.Volumes = volumes
 			containerProperties.VolumeMounts = volumeMounts
@@ -178,9 +180,9 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		containerGroupCreated, err := c.aciClient.CreateContainerGroup(executorEnv.ResourceGroup, spec.Handle, containerGroup)
 		if containerGroupCreated != nil {
 			// TODO wait for the command exit.
-			c.logger.Info("createcontainergroup", lager.Data{"err": err})
+			c.logger.Info("###########(andliu) createcontainergroup succeeded.", lager.Data{"containerGroupCreated": containerGroupCreated})
 		}
-		c.logger.Info("###########(andliu) CreateContainerGroup", lager.Data{"err": err})
+		c.logger.Info("###########(andliu) CreateContainerGroup failed.", lager.Data{"err": err.Error()})
 	}
 
 	return c.inner.Create(spec)
