@@ -118,9 +118,23 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		containerProperties.Image = "cloudfoundry/cflinuxfs2"
 
 		containerGroup.ContainerGroupProperties.RestartPolicy = aci.OnFailure
-		containerProperties.Command = append(containerProperties.Command, "/bin/ls")
-		containerProperties.Command = append(containerProperties.Command, "/etc")
+		containerProperties.Command = append(containerProperties.Command, "/bin/bash")
+		containerProperties.Command = append(containerProperties.Command, "-c")
 
+		const prepareScript = `
+	set -e
+	echo "#####now /"
+	ls /
+	echo "#####now /home"
+	ls /home
+	echo "#####now /home/vcap"
+	ls /home/vcap
+	echo "#####now remove /home/vcap/app"
+	rm -rf /home/vcap/app
+`
+		containerProperties.Command = append(containerProperties.Command, prepareScript)
+
+		// "/bin/bash", "-c"
 		for _, p := range spec.NetIn {
 			containerPort := aci.ContainerPort{
 				Port:     int32(p.ContainerPort),

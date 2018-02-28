@@ -156,7 +156,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 	if destination == "." {
 		// workaround, we guess . is the /home/vcap.
 		// will extract the droplet file to this folder.
-		finaldestination = "/home/vcap"
+		finaldestination = "/home/vcap/streaminfolder"
 	} else {
 		finaldestination = destination
 	}
