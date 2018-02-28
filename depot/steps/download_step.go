@@ -172,6 +172,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 
 	aciClient, err := aci.NewClient(azAuth)
 	if err == nil {
+		step.logger.Info("#########(andliu) aci client.", lager.Data{"null": (aciClient == nil)})
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
 		if err == nil {
 			step.logger.Info("##########(andliu) download step in get container group.",
