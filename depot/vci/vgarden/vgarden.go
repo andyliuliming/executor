@@ -108,9 +108,8 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 }
 
 func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
-	c.logger.Info("########(andliu) vgarden Create", lager.Data{"spec": spec})
 	if !strings.HasPrefix(spec.Handle, "executor-healthcheck") {
-		c.logger.Info("########(andliu) not health check", lager.Data{"handle": spec.Handle})
+		c.logger.Info("########(andliu) not health check, so create in aci.", lager.Data{"spec": spec})
 		// try to call the create
 		var containerGroup aci.ContainerGroup
 		executorEnv := model.GetExecutorEnvInstance()
@@ -176,7 +175,7 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 
 		// prepare the share folder to be mounted
 		handle := spec.Handle
-		handle = "vgarden" // TODO remove this, hard code for consistent folder.
+		// handle = "vgarden" // TODO remove this, hard code for consistent folder.
 		volumes, volumeMounts, err := c.prepareVirtualShares(handle, spec.BindMounts)
 		c.logger.Info("###########(andliu) prepareVirtualShares result.",
 			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})

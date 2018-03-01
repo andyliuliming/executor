@@ -180,7 +180,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 			// create a folder
 			vstore := vstore.NewVStore()
 			// handle = "downloadstep" // TODO remove this, hard code for consistent folder.
-			shareName, err := vstore.CreateFolder("downloadstep", finaldestination)
+			shareName, err := vstore.CreateFolder(handle, finaldestination)
 
 			executorEnv := model.GetExecutorEnvInstance()
 			if err == nil {
