@@ -203,31 +203,32 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 				}
 				vsync := helpers.NewVSync(step.logger)
 				err = vsync.ExtractToAzureShare(reader, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
-				if err != nil {
-					step.logger.Info("########(andliu) extract to azure share failed.", lager.Data{"err": err.Error()})
-				}
-				// save back the storage account key
-				for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
-					containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
-						executorEnv.Config.ContainerProviderConfig.StorageSecret
-				}
-				for idx, _ := range containerGroupGot.ContainerGroupProperties.Containers {
-					containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts = append(
-						containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts, volumeMount)
-				}
-				step.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
-				containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
-				retry := 0
-				for err != nil && retry < 10 {
-					step.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
-					time.Sleep(60 * time.Second)
-					containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
-					retry++
-				}
 				if err == nil {
-					step.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
+					// save back the storage account key
+					for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+						containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+							executorEnv.Config.ContainerProviderConfig.StorageSecret
+					}
+					for idx, _ := range containerGroupGot.ContainerGroupProperties.Containers {
+						containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts = append(
+							containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts, volumeMount)
+					}
+					step.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
+					containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+					retry := 0
+					for err != nil && retry < 10 {
+						step.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+						time.Sleep(60 * time.Second)
+						containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+						retry++
+					}
+					if err == nil {
+						step.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
+					} else {
+						step.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+					}
 				} else {
-					step.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+					step.logger.Info("########(andliu) extract to azure share failed.", lager.Data{"err": err.Error()})
 				}
 			} else {
 				step.logger.Info("#########(andliu) shareName failed.", lager.Data{"err": err.Error()})
