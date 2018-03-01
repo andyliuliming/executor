@@ -88,33 +88,35 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	aciClient, err := aci.NewClient(azAuth)
 	if err == nil {
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, container.inner.Handle())
-		container.logger.Info("#########(andliu) vcontainer.go L92 got container in vcontainer.",
-			lager.Data{"cg": containerGroupGot, "err": err, "code": code})
 
-		for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
-			containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
-				executorEnv.Config.ContainerProviderConfig.StorageSecret
-		}
-
-		for idx, _ := range containerGroupGot.Containers {
-			for _, envStr := range spec.Env {
-				splits := strings.Split(envStr, "=")
-				containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables =
-					append(containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables,
-						aci.EnvironmentVariable{Name: splits[0], Value: splits[1]})
-
-				containerGroupGot.Containers[idx].Command = []string{"env"}
+		if err != nil {
+			for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+				containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+					executorEnv.Config.ContainerProviderConfig.StorageSecret
 			}
-			container.logger.Info("###########(andliu) prepare commands.", lager.Data{"path": spec.Path, "args": spec.Args})
-			// containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, spec.Path)
-			// for _, para := range spec.Args {
-			// 	containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, para)
-			// }
-		}
-		// prepare the commands.
 
-		container.logger.Info("#########(andliu) container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
-		aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+			for idx, _ := range containerGroupGot.Containers {
+				for _, envStr := range spec.Env {
+					splits := strings.Split(envStr, "=")
+					containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables =
+						append(containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables,
+							aci.EnvironmentVariable{Name: splits[0], Value: splits[1]})
+
+					containerGroupGot.Containers[idx].Command = []string{"env"}
+				}
+				container.logger.Info("###########(andliu) prepare commands.", lager.Data{"path": spec.Path, "args": spec.Args})
+				// containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, spec.Path)
+				// for _, para := range spec.Args {
+				// 	containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, para)
+				// }
+			}
+			// prepare the commands.
+			container.logger.Info("#########(andliu) container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
+			aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+		} else {
+			container.logger.Info("#########(andliu) vcontainer.go L92 got container in vcontainer.",
+				lager.Data{"cg": containerGroupGot, "err": err.Error(), "code": code})
+		}
 	} else {
 		container.logger.Info("########(andliu) Run in VContainer failed.", lager.Data{"err": err.Error()})
 	}
