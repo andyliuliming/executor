@@ -144,7 +144,6 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 	ls /home/vcap
 `
 		containerProperties.Command = append(containerProperties.Command, prepareScript)
-		// "/bin/bash", "-c"
 		if len(spec.NetIn) > 0 {
 			containerGroup.IPAddress = &aci.IPAddress{
 				Type:  aci.Public,
@@ -163,15 +162,8 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 			}
 			containerProperties.Ports = append(containerProperties.Ports, containerPort)
 		}
-		// containerGroup.ContainerGroupProperties = containerProperties
-		// containerProperties.Ports = spec.NetIn
 		container := aci.Container{
 			Name: spec.Handle,
-			// ContainerProperties: aci.ContainerProperties{
-			// 	Image:   "cloudfoundry/cflinuxfs2",
-			// 	Command: append(container.Command, container.Args...),
-			// 	Ports:   make([]aci.ContainerPort, 0, len(container.Ports)),
-			// },
 		}
 		containerProperties.Resources.Requests.CPU = 1          // hard code 1
 		containerProperties.Resources.Requests.MemoryInGB = 0.3 // hard code memory 1
@@ -203,7 +195,9 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 			// TODO wait for the command exit.
 			c.logger.Info("###########(andliu) createcontainergroup succeeded.", lager.Data{"containerGroupCreated": containerGroupCreated})
 		} else {
-			c.logger.Info("###########(andliu) CreateContainerGroup failed.", lager.Data{"err": err.Error()})
+			c.logger.Info("###########(andliu) CreateContainerGroup failed.", lager.Data{
+				"err":            err.Error(),
+				"containerGroup": containerGroup})
 		}
 	}
 
