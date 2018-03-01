@@ -88,7 +88,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	aciClient, err := aci.NewClient(azAuth)
 	if err == nil {
 		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, container.inner.Handle())
-		if err != nil {
+		if err == nil {
 			for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
 				containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
 					executorEnv.Config.ContainerProviderConfig.StorageSecret
