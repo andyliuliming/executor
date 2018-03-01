@@ -98,7 +98,9 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 			}
 			vsync := helpers.NewVSync(c.logger)
 			err = vsync.CopyFolderToAzureShare(bindMount.SrcPath, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
-
+			if err != nil {
+				c.logger.Info("############(andliu) copy folder failed.", lager.Data{"err": err.Error()})
+			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		} else {
 			c.logger.Info("########(andliu) create folder failed.", lager.Data{

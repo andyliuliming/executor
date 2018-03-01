@@ -79,5 +79,5 @@ func (v *VSync) mountToTempFolder(storageID, storageSecret, shareName string) (s
 		err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
 		return tempFolder, err
 	}
-	return "Failed to craete temp folder.", err
+	return "Failed to create temp folder.", err
 }
