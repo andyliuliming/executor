@@ -75,7 +75,7 @@ func (v *VSync) mountToTempFolder(storageID, storageSecret, shareName string) (s
 	mounter := mount.NewMounter()
 	tempFolder, err := ioutil.TempDir("/tmp", "folder_to_azure")
 	if err == nil {
-		azureFilePath := fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, storageSecret)
+		azureFilePath := fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
 		err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
 		return tempFolder, err
 	}
