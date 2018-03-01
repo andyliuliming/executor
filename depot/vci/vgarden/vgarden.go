@@ -153,7 +153,7 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 			containerGroup.IPAddress.Ports =
 				append(containerGroup.IPAddress.Ports, aci.Port{
 					Protocol: aci.TCP,
-					Port:     int32(p.HostPort),
+					Port:     int32(p.ContainerPort), // TODO use the ContainerPort for all now...
 				})
 			containerPort := aci.ContainerPort{
 				Port:     int32(p.ContainerPort),
@@ -184,7 +184,6 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		c.logger.Info("###########(andliu) prepareVirtualShares result.",
 			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})
 		if err == nil {
-
 			containerGroup.ContainerGroupProperties.Volumes = volumes
 			containerProperties.VolumeMounts = volumeMounts
 		} else {
