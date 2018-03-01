@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"code.cloudfoundry.org/cacheddownloader"
 	"code.cloudfoundry.org/executor/depot/log_streamer"
+	"code.cloudfoundry.org/executor/depot/vci/helpers"
 	"code.cloudfoundry.org/executor/depot/vci/vstore"
 	"code.cloudfoundry.org/executor/model"
 	"code.cloudfoundry.org/garden"
@@ -98,6 +99,7 @@ func (step *downloadStep) perform() error {
 		return NewEmittableError(err, errString)
 	}
 
+	// TODO can we assume this is the tar file?
 	err = step.vStreamIn(step.model.To, downloadedFile)
 
 	err = step.streamIn(step.model.To, downloadedFile)
@@ -154,7 +156,7 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 	// 1. get the container configs.
 	var finaldestination string
 	if destination == "." {
-		// workaround, we guess . is the /home/vcap.
+		// TODO: workaround, we guess . is the /home/vcap.
 		// will extract the droplet file to this folder.
 		finaldestination = "/home/vcap"
 	} else {
@@ -199,8 +201,11 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 					MountPath: finaldestination,
 					ReadOnly:  false,
 				}
-				// vsync := helpers.NewVSync(step.logger)
-				// vsync.CopyFolderToAzureShare()
+				vsync := helpers.NewVSync(step.logger)
+				err = vsync.ExtractToAzureShare(reader, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
+				if err != nil {
+					step.logger.Info("########(andliu) extract to azure share failed.", lager.Data{"err": err.Error()})
+				}
 				// save back the storage account key
 				for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
 					containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
