@@ -53,8 +53,12 @@ func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName 
 	if err == nil {
 		fsync := fsync.NewFSync()
 		err = fsync.CopyFolder(src, tempFolder)
-		mounter.Unmount(tempFolder)
-		return nil
+		if err == nil {
+			mounter.Unmount(tempFolder)
+			return nil
+		} else {
+			return err
+		}
 	} else {
 		return err
 	}

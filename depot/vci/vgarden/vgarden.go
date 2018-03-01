@@ -2,6 +2,7 @@ package vgarden // import "code.cloudfoundry.org/executor/depot/vci/vgarden"
 import (
 	"strings"
 
+	"code.cloudfoundry.org/executor/depot/vci/helpers"
 	"code.cloudfoundry.org/executor/depot/vci/vstore"
 
 	"code.cloudfoundry.org/executor/model"
@@ -95,6 +96,9 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 				MountPath: bindMount.DstPath,
 				ReadOnly:  false,
 			}
+			vsync := helpers.NewVSync(c.logger)
+			err = vsync.CopyFolderToAzureShare(bindMount.SrcPath, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
+
 			volumeMounts = append(volumeMounts, volumeMount)
 		} else {
 			c.logger.Info("########(andliu) create folder failed.", lager.Data{
@@ -180,6 +184,7 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		c.logger.Info("###########(andliu) prepareVirtualShares result.",
 			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})
 		if err == nil {
+
 			containerGroup.ContainerGroupProperties.Volumes = volumes
 			containerProperties.VolumeMounts = volumeMounts
 		} else {
