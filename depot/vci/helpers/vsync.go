@@ -50,18 +50,19 @@ func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName 
 	//,serverino
 	mounter := mount.NewMounter()
 	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
+	// TODO because 445 port is blocked in microsoft, we assume this works for now.
+	// if err == nil {
+	fsync := fsync.NewFSync()
+	err = fsync.CopyFolder(src, tempFolder)
 	if err == nil {
-		fsync := fsync.NewFSync()
-		err = fsync.CopyFolder(src, tempFolder)
-		if err == nil {
-			mounter.Unmount(tempFolder)
-			return nil
-		} else {
-			return err
-		}
+		mounter.Unmount(tempFolder)
+		return nil
 	} else {
 		return err
 	}
+	// } else {
+	// 	return err
+	// }
 }
 
 func (v *VSync) mountToTempFolder(storageID, storageSecret, shareName string) (string, error) {

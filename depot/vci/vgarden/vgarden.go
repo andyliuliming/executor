@@ -78,7 +78,6 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 			// 1. mount the share created in the virtual diego cell
 			// 2. copy all the files in the bindMount.SrcPath to that share.
 			// 3. unmount it.
-
 			azureFile := &aci.AzureFileVolume{
 				ReadOnly:           false,
 				ShareName:          shareName,
