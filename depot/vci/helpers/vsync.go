@@ -25,7 +25,7 @@ func NewVSync(logger lager.Logger) *VSync {
 }
 
 func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecret, shareName string) error {
-	v.logger.Info("#########(andliu) try to extract to azure share.")
+	v.logger.Info("#########(andliu) ExtractToAzureShare try to extract to azure share.")
 	mounter := mount.NewMounter()
 	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
 
@@ -36,11 +36,11 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecr
 			mounter.Unmount(tempFolder)
 			return nil
 		} else {
-			v.logger.Info("#########(andliu) ExtractStream to azure share failed.", lager.Data{"err": err.Error()})
+			v.logger.Info("#########(andliu) ExtractToAzureShare ExtractStream to azure share failed.", lager.Data{"err": err.Error()})
 			return err
 		}
 	} else {
-		v.logger.Info("#########(andliu) extract to azure share failed.", lager.Data{"err": err.Error()})
+		v.logger.Info("#########(andliu) ExtractToAzureShare extract to azure share failed.", lager.Data{"err": err.Error()})
 		return err
 	}
 }
