@@ -30,7 +30,7 @@ func (vs *VStore) buildShareName(containerId string, path string) string {
 	h.Write([]byte(originStr))
 	bs := h.Sum(nil)
 	// return fmt.Sprintf("%x", bs)
-	return fmt.Sprintf("%s-%x", containerId, bs) // TODO use the full hash
+	return fmt.Sprintf("%x", bs) // TODO use the full hash
 }
 
 func (vs *VStore) CreateFolder(containerId string, path string) (string, error) {
