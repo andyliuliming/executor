@@ -23,13 +23,20 @@ func (mounter *MounterLinux) doMount(mountCmd string, source string, target stri
 	// 	mountArgs = append([]string{mountCmd}, mountArgs...)
 	// 	mountCmd = mounterPath
 	// }
-	command := exec.Command(mountCmd, mountArgs...)
+	withSudo := make([]string, len(mountArgs)+2)
+	withSudo[0] = "sudo"
+	withSudo[1] = mountCmd
+	copy(withSudo[1:], mountArgs)
+	mountScript := strings.Join(withSudo, " ")
+	// finalScript := strings.Join([]string{"-c"}, " ")
+	// withSudo = append(withSudo, mountArgs)
+	command := exec.Command("sh", "-c", mountScript)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		args := strings.Join(mountArgs, " ")
+		// args := strings.Join(mountArgs, " ")
 		// glog.Errorf("Mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n", err, mountCmd, args, string(output))
 		return fmt.Errorf("mount failed: %v\nMounting command: %s\nMounting arguments: %s\nOutput: %s\n",
-			err, mountCmd, args, string(output))
+			err, mountCmd, mountScript, string(output))
 	}
 	return err
 }
