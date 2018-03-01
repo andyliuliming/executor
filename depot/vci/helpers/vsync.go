@@ -30,9 +30,12 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecr
 
 	extra := extractor.NewTar()
 	if err == nil {
-		extra.ExtractStream(tempFolder, reader)
-		mounter.Unmount(tempFolder)
-		return nil
+		err = extra.ExtractStream(tempFolder, reader)
+		if err == nil {
+			mounter.Unmount(tempFolder)
+			return nil
+		}
+		return err
 	} else {
 		return err
 	}
