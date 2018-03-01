@@ -23,9 +23,9 @@ func (mounter *MounterLinux) doMount(mountCmd string, source string, target stri
 	// 	mountArgs = append([]string{mountCmd}, mountArgs...)
 	// 	mountCmd = mounterPath
 	// }
-	withSudo := make([]string, len(mountArgs)+2)
-	withSudo[0] = "sudo"
-	withSudo[1] = mountCmd
+	withSudo := make([]string, len(mountArgs)+1)
+	// withSudo[0] = "sudo"
+	withSudo[0] = mountCmd
 	copy(withSudo[1:], mountArgs)
 	mountScript := strings.Join(withSudo, " ")
 	// finalScript := strings.Join([]string{"-c"}, " ")
