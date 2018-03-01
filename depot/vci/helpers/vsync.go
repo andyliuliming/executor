@@ -34,8 +34,9 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecr
 		if err == nil {
 			mounter.Unmount(tempFolder)
 			return nil
+		} else {
+			return err
 		}
-		return err
 	} else {
 		return err
 	}
@@ -68,8 +69,8 @@ func (v *VSync) mountToTempFolder(storageID, storageSecret, shareName string) (s
 	tempFolder, err := ioutil.TempDir("/tmp", "folder_to_azure")
 	if err == nil {
 		azureFilePath := fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, storageSecret)
-		mounter.Mount(azureFilePath, tempFolder, "cifs", options)
-		return tempFolder, nil
+		err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
+		return tempFolder, err
 	}
 	return "Failed to craete temp folder.", err
 }
