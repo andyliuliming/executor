@@ -152,7 +152,7 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		if len(spec.NetIn) > 0 {
 			containerGroup.IPAddress = &aci.IPAddress{
 				Type:  aci.Public,
-				Ports: make([]aci.Port, len(spec.NetIn)),
+				Ports: make([]aci.Port, 0),
 			}
 		}
 		for _, p := range spec.NetIn {
