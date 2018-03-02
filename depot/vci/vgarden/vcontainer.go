@@ -1,6 +1,7 @@
 package vgarden
 
 import (
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -102,15 +103,29 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 
 					containerGroupGot.Containers[idx].Command = []string{"env"}
 				}
+				containerGroupGot.Containers[idx].Command = []string{}
+				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "/bin/bash")
+				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "-c")
+
+				var runScript = fmt.Sprintf(`
+	set -e
+	echo "#####now /"
+	ls /
+	echo "#####now /home"
+	ls /home
+	echo "#####now /home/vcap"
+	ls /home/vcap
+	%s %s
+`, spec.Path, strings.Join(spec.Args, ""))
+				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) prepare commands.", lager.Data{"path": spec.Path, "args": spec.Args})
-				// containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, spec.Path)
-				// for _, para := range spec.Args {
-				// 	containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, para)
-				// }
 			}
 			// prepare the commands.
-			container.logger.Info("#########(andliu) container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
-			aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+			container.logger.Info("#########(andliu) update container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
+			_, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+			if err != nil {
+				container.logger.Info("##########(andliu) update container failed.", lager.Data{"err": err.Error()})
+			}
 		} else {
 			container.logger.Info("#########(andliu) vcontainer.go L92 got container in vcontainer.",
 				lager.Data{"err": err.Error(), "code": code})
