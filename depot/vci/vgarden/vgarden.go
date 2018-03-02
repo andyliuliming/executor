@@ -72,9 +72,9 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 	var volumes []aci.Volume
 	for _, bindMount := range bindMounts {
 		shareName, err := vstore.CreateFolder(handle, bindMount.DstPath)
-		c.logger.Info("#########(andliu) create folder.", lager.Data{"handle": handle, "bindMount": bindMount})
+		c.logger.Info("#########(andliu) create folder.", lager.Data{
+			"handle": handle, "bindMount": bindMount, "shareName": shareName})
 		if err == nil {
-			c.logger.Info("######(andliu) TODO copy to azure share.", lager.Data{"bindMount": bindMount, "ContainerProviderConfig": model.GetExecutorEnvInstance().Config.ContainerProviderConfig})
 			// 1. mount the share created in the virtual diego cell
 			// 2. copy all the files in the bindMount.SrcPath to that share.
 			// 3. unmount it.
@@ -98,9 +98,13 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 			vsync := helpers.NewVSync(c.logger)
 			err = vsync.CopyFolderToAzureShare(bindMount.SrcPath, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
 			if err != nil {
-				c.logger.Info("############(andliu) copy folder failed.", lager.Data{"err": err.Error()})
+				c.logger.Info("############(andliu) copy folder failed.", lager.Data{
+					"err":       err.Error(),
+					"shareName": azureFile.ShareName})
 			} else {
-				c.logger.Info("############(andliu) copy folder succeeded.", lager.Data{"bindMount": bindMount})
+				c.logger.Info("############(andliu) copy folder succeeded.", lager.Data{
+					"bindMount": bindMount,
+					"shareName": azureFile.ShareName})
 			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		} else {
