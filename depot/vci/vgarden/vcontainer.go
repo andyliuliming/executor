@@ -102,9 +102,11 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables = []aci.EnvironmentVariable{}
 				for _, envStr := range spec.Env {
 					splits := strings.Split(envStr, "=")
-					containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables =
-						append(containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables,
-							aci.EnvironmentVariable{Name: splits[0], Value: splits[1]})
+					if splits[1] != "" {
+						containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables =
+							append(containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables,
+								aci.EnvironmentVariable{Name: splits[0], Value: splits[1]})
+					}
 				}
 				containerGroupGot.Containers[idx].Command = []string{}
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "/bin/bash")
@@ -113,7 +115,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				var runScript = fmt.Sprintf(`
 		echo "real execute."
 		%s %s
-	`, spec.Path, strings.Join(spec.Args, ""))
+	`, spec.Path, strings.Join(spec.Args, " "))
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})
 			}
