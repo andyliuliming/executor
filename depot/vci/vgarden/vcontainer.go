@@ -124,6 +124,13 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 			// prepare the commands.
 			container.logger.Info("#########(andliu) update container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
 			_, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+			retry := 0
+			for err != nil && retry < 10 {
+				container.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+				time.Sleep(60 * time.Second)
+				_, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+				retry++
+			}
 			if err != nil {
 				container.logger.Info("##########(andliu) update container failed.", lager.Data{"err": err.Error()})
 			}
