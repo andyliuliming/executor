@@ -77,8 +77,7 @@ func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) 
 }
 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
-	// return container.connection.Run(container.handle, spec, io)
-	// container.logger.Info("#########(andliu) vcontainer.go L81 run container with spec:", lager.Data{"spec": spec})
+	container.logger.Info("#########(andliu) vcontainer.go run container with spec:", lager.Data{"spec": spec})
 	var azAuth *goaci.Authentication
 
 	executorEnv := model.GetExecutorEnvInstance()
