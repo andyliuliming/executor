@@ -101,6 +101,17 @@ func (step *downloadStep) perform() error {
 
 	// TODO can we assume this is the tar file?
 	err = step.vStreamIn(step.model.To, downloadedFile)
+	// downloadedFile.
+	if err != nil {
+		return err
+	}
+
+	newOffset, err := downloadedFile.(io.Seeker).Seek(0, io.SeekStart)
+
+	if err != nil {
+		step.logger.Info("###########(andliu) seek failed.", lager.Data{"err": err, "newOffset": newOffset})
+		return err
+	}
 
 	err = step.streamIn(step.model.To, downloadedFile)
 	if err != nil {

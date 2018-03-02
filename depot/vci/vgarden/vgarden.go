@@ -99,6 +99,8 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 			err = vsync.CopyFolderToAzureShare(bindMount.SrcPath, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
 			if err != nil {
 				c.logger.Info("############(andliu) copy folder failed.", lager.Data{"err": err.Error()})
+			} else {
+				c.logger.Info("############(andliu) copy folder succeeded.", lager.Data{"bindMount": bindMount})
 			}
 			volumeMounts = append(volumeMounts, volumeMount)
 		} else {

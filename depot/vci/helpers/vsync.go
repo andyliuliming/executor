@@ -25,7 +25,7 @@ func NewVSync(logger lager.Logger) *VSync {
 }
 
 func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecret, shareName string) error {
-	v.logger.Info("#########(andliu) ExtractToAzureShare try to extract to azure share.")
+	// v.logger.Info("#########(andliu) ExtractToAzureShare try to extract to azure share.")
 	mounter := mount.NewMounter()
 	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
 

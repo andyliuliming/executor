@@ -197,7 +197,6 @@ func (n *storeNode) Create(logger lager.Logger) error {
 	n.bindMounts = append(n.bindMounts, proxyMounts...)
 
 	// 1. mount one azure share for creating the directories
-
 	credMounts, envs, err := n.credManager.CreateCredDir(logger, n.info)
 	if err != nil {
 		n.complete(logger, true, CredDirFailed)
@@ -215,7 +214,7 @@ func (n *storeNode) Create(logger lager.Logger) error {
 		})
 	}
 
-	logger.Info("##############(andliu) bindMounts:", lager.Data{"bindMounts": n.bindMounts})
+	// logger.Info("##############(andliu) bindMounts:", lager.Data{"bindMounts": n.bindMounts})
 	fmt.Fprintf(logStreamer.Stdout(), "Creating container\n")
 
 	gardenContainer, err := n.createGardenContainer(logger, &info)
@@ -334,7 +333,7 @@ func (n *storeNode) createGardenContainer(logger lager.Logger, info *executor.Co
 		NetOut:     netOutRules,
 	}
 
-	logger.Info("############(andliu) containerSpec:", lager.Data{"containerSpec": containerSpec})
+	// logger.Info("############(andliu) containerSpec:", lager.Data{"containerSpec": containerSpec})
 	// mock create container
 	// 1. mount azure file to some place
 	// 2. copy the mount files to the shares.
@@ -435,9 +434,10 @@ func (n *storeNode) Run(logger lager.Logger) error {
 		BindMounts:    n.bindMounts,
 		ProxyTLSPorts: proxyTLSPorts,
 	}
-	logger.Info("#################(andliu) gardenContainer: ", lager.Data{"gardenContainer": n.gardenContainer})
+	// logger.Info("#################(andliu) gardenContainer: ", lager.Data{"gardenContainer": n.gardenContainer})
 	runner, err := n.transformer.StepsRunner(logger, n.info, n.gardenContainer, logStreamer, cfg)
 	if err != nil {
+		logger.Info("###########(andliu) steps runner failed.", lager.Data{"err": err.Error(), "gardenContainer": n.gardenContainer})
 		return err
 	}
 
