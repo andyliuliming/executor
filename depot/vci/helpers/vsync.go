@@ -50,19 +50,18 @@ func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName 
 	//,serverino
 	mounter := mount.NewMounter()
 	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
-	// TODO because 445 port is blocked in microsoft, we assume this works for now.
-	// if err == nil {
-	fsync := fsync.NewFSync()
-	err = fsync.CopyFolder(src, tempFolder)
 	if err == nil {
-		mounter.Unmount(tempFolder)
-		return nil
+		fsync := fsync.NewFSync()
+		err = fsync.CopyFolder(src, tempFolder)
+		if err == nil {
+			mounter.Unmount(tempFolder)
+			return nil
+		} else {
+			return err
+		}
 	} else {
 		return err
 	}
-	// } else {
-	// 	return err
-	// }
 }
 
 func (v *VSync) mountToTempFolder(storageID, storageSecret, shareName string) (string, error) {
@@ -76,7 +75,9 @@ func (v *VSync) mountToTempFolder(storageID, storageSecret, shareName string) (s
 	mounter := mount.NewMounter()
 	tempFolder, err := ioutil.TempDir("/tmp", "folder_to_azure")
 	if err == nil {
-		azureFilePath := fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+		// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
+		options = append(options, "port=444")
+		azureFilePath := fmt.Sprintf("//40.112.190.242/%s", shareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
 		err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
 		return tempFolder, err
 	}
