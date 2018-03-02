@@ -106,6 +106,8 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 						containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables =
 							append(containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables,
 								aci.EnvironmentVariable{Name: splits[0], Value: splits[1]})
+					} else {
+						container.logger.Info("###########(andliu) value is empty.", lager.Data{"envStr": envStr})
 					}
 				}
 				containerGroupGot.Containers[idx].Command = []string{}
