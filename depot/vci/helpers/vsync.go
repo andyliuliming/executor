@@ -47,6 +47,7 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecr
 }
 
 func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName string) error {
+	v.logger.Info("##########(andliu) copy folder to azure share.", lager.Data{"src": src, "shareName": shareName})
 	mounter := mount.NewMounter()
 	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
 	if err == nil {
