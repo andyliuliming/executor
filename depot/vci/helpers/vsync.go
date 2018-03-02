@@ -25,7 +25,6 @@ func NewVSync(logger lager.Logger) *VSync {
 }
 
 func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecret, shareName string) error {
-	// v.logger.Info("#########(andliu) ExtractToAzureShare try to extract to azure share.")
 	mounter := mount.NewMounter()
 	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
 
@@ -33,6 +32,9 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecr
 	if err == nil {
 		err = extra.ExtractStream(tempFolder, reader)
 		if err == nil {
+			v.logger.Info("#########(andliu) ExtractToAzureShare succeeded.", lager.Data{
+				"tempFolder": tempFolder,
+				"shareName":  shareName})
 			mounter.Unmount(tempFolder)
 			return nil
 		} else {
@@ -46,8 +48,6 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecr
 }
 
 func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName string) error {
-	// vers=<smb-version>,username=<storage-account-name>,password=<storage-account-key>,dir_mode=0777,file_mode=0777
-	//,serverino
 	mounter := mount.NewMounter()
 	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
 	if err == nil {
