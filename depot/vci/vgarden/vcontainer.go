@@ -78,6 +78,10 @@ func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) 
 }
 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+	if strings.Contains(spec.Path, "healthcheck") {
+		return container.inner.Run(spec, io)
+	}
+
 	container.logger.Info("#########(andliu) vcontainer.go run container with spec:", lager.Data{"spec": spec})
 	var azAuth *goaci.Authentication
 
@@ -95,30 +99,23 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 			}
 
 			for idx, _ := range containerGroupGot.Containers {
+				containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables = []aci.EnvironmentVariable{}
 				for _, envStr := range spec.Env {
 					splits := strings.Split(envStr, "=")
 					containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables =
 						append(containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables,
 							aci.EnvironmentVariable{Name: splits[0], Value: splits[1]})
-
-					containerGroupGot.Containers[idx].Command = []string{"env"}
 				}
 				containerGroupGot.Containers[idx].Command = []string{}
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "/bin/bash")
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "-c")
 
 				var runScript = fmt.Sprintf(`
-	set -e
-	echo "#####now /"
-	ls /
-	echo "#####now /home"
-	ls /home
-	echo "#####now /home/vcap"
-	ls /home/vcap
-	%s %s
-`, spec.Path, strings.Join(spec.Args, ""))
+		echo "real execute."
+		%s %s
+	`, spec.Path, strings.Join(spec.Args, ""))
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
-				container.logger.Info("###########(andliu) prepare commands.", lager.Data{"path": spec.Path, "args": spec.Args})
+				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})
 			}
 			// prepare the commands.
 			container.logger.Info("#########(andliu) update container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
@@ -133,6 +130,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	} else {
 		container.logger.Info("########(andliu) Run in VContainer failed.", lager.Data{"err": err.Error(), "spec": spec})
 	}
+
 	return container.inner.Run(spec, io)
 }
 
