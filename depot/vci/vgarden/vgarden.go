@@ -237,14 +237,14 @@ func (c *client) BulkInfo(handles []string) (map[string]garden.ContainerInfoEntr
 	// return map[string]garden.ContainerInfoEntry{}, nil
 	// return client.connection.BulkInfo(handles)
 
-	c.logger.Info("########(andliu) BulkInfo", lager.Data{"handles": handles})
+	// c.logger.Info("########(andliu) BulkInfo", lager.Data{"handles": handles})
 	return c.inner.BulkInfo(handles)
 }
 
 func (c *client) BulkMetrics(handles []string) (map[string]garden.ContainerMetricsEntry, error) {
 	// return map[string]garden.ContainerMetricsEntry{}, nil
 
-	c.logger.Info("########(andliu) BulkMetrics", lager.Data{"handles": handles})
+	// c.logger.Info("########(andliu) BulkMetrics", lager.Data{"handles": handles})
 	return c.inner.BulkMetrics(handles)
 }
 

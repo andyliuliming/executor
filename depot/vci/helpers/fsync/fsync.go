@@ -43,7 +43,7 @@ func (f *fSync) CopyFolder(src, dest string) error {
 }
 
 func (f *fSync) doRsync(rsyncCommand, src, dest string) error {
-	rsyncArgs := makeRsyncArgs(src, dest)
+	rsyncArgs := makeRsyncArgs(fmt.Sprintf("%s/", src), dest)
 	command := exec.Command("rsync", rsyncArgs...)
 	output, err := command.CombinedOutput()
 	if err != nil {
