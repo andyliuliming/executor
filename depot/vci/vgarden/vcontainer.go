@@ -62,19 +62,16 @@ func (container *VContainer) CurrentBandwidthLimits() (garden.BandwidthLimits, e
 func (container *VContainer) CurrentCPULimits() (garden.CPULimits, error) {
 	// return container.connection.CurrentCPULimits(container.handle)
 	return container.inner.CurrentCPULimits()
-	// return garden.CPULimits{}, nil
 }
 
 func (container *VContainer) CurrentDiskLimits() (garden.DiskLimits, error) {
 	// return container.connection.CurrentDiskLimits(container.handle)
 	return container.inner.CurrentDiskLimits()
-	// return garden.DiskLimits{}, nil
 }
 
 func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) {
 	// return container.connection.CurrentMemoryLimits(container.handle)
 	return container.inner.CurrentMemoryLimits()
-	// return garden.MemoryLimits{}, nil
 }
 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {

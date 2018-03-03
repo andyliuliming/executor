@@ -213,6 +213,10 @@ func (step *downloadStep) vStreamIn(destination string, reader io.ReadCloser) er
 					ReadOnly:  false,
 				}
 				vsync := helpers.NewVSync(step.logger)
+				// TODO check whether there's already parent folder mounted.
+				// if yes, then no need to mount ,just mount the parent, and copy.
+				// if no, create a new folder to map.
+
 				err = vsync.ExtractToAzureShare(reader, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
 				if err == nil {
 					// save back the storage account key

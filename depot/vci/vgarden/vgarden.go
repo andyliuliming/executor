@@ -65,6 +65,7 @@ func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMou
 			// 1. mount the share created in the virtual diego cell
 			// 2. copy all the files in the bindMount.SrcPath to that share.
 			// 3. unmount it.
+			// merge the folder to the parent.
 			azureFile := &aci.AzureFileVolume{
 				ReadOnly:           false,
 				ShareName:          shareName,
@@ -126,6 +127,8 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 	set -e
 	echo "#####now /"
 	ls /
+	echo "#####ls /tmp"
+	ls /tmp
 	echo "#####now /home"
 	ls /home
 	echo "#####now /home/vcap"
@@ -165,8 +168,10 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 
 		// prepare the share folder to be mounted
 		handle := spec.Handle
-		// handle = "vgarden" // TODO remove this, hard code for consistent folder.
-		volumes, volumeMounts, err := c.prepareVirtualShares(handle, spec.BindMounts)
+		// we need to merge the bindMounts together
+		vst := NewVStream(c.logger)
+		volumes, volumeMounts, err := vst.PrepareVolumeMounts(handle, spec.BindMounts)
+		// volumes, volumeMounts, err := c.prepareVirtualShares(handle, spec.BindMounts)
 		c.logger.Info("###########(andliu) prepareVirtualShares result.",
 			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})
 		if err == nil {
@@ -176,7 +181,6 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 			// handle this error case
 			c.logger.Info("##########(andliu) prepare virtual shares failed.", lager.Data{"err": err.Error()})
 		}
-		// spec.
 
 		container.ContainerProperties = containerProperties
 		containerGroup.Containers = append(containerGroup.Containers, container)

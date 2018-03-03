@@ -17,13 +17,23 @@ type VStore struct {
 
 func NewVStore() *VStore {
 	azureFileClient := AzureFileClient{env: azure.PublicCloud}
-
 	return &VStore{
 		AzureFileClient: azureFileClient,
 	}
 }
 
-func (vs *VStore) buildShareName(containerId string, path string) string {
+func (vs *VStore) CreateFolder(containerId string, path string) (string, error) {
+	shareName := BuildShareName(containerId, path)
+	err := vs.CreateShareFolder(shareName)
+	return shareName, err
+}
+
+func (vs *VStore) CreateShareFolder(name string) error {
+	providerConfig := model.GetExecutorEnvInstance().Config.ContainerProviderConfig
+	return vs.AzureFileClient.createFileShare(providerConfig.StorageId, providerConfig.StorageSecret, name, 50)
+}
+
+func BuildShareName(containerId string, path string) string {
 	// return containerId.path
 	h := sha1.New()
 	originStr := fmt.Sprintf("%s-%s", containerId, path)
@@ -31,15 +41,4 @@ func (vs *VStore) buildShareName(containerId string, path string) string {
 	bs := h.Sum(nil)
 	// return fmt.Sprintf("%x", bs)
 	return fmt.Sprintf("%x", bs) // TODO use the full hash
-}
-
-func (vs *VStore) CreateFolder(containerId string, path string) (string, error) {
-	shareName := vs.buildShareName(containerId, path)
-	err := vs.createShareFolder(shareName)
-	return shareName, err
-}
-
-func (vs *VStore) createShareFolder(name string) error {
-	providerConfig := model.GetExecutorEnvInstance().Config.ContainerProviderConfig
-	return vs.AzureFileClient.createFileShare(providerConfig.StorageId, providerConfig.StorageSecret, name, 50)
 }
