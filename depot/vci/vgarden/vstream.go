@@ -341,7 +341,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 			"src":  extractedFolder,
 			"dest": mountedRootFolder})
 	}
-	f, err := os.Create(filepath.Join(mountedRootFolder, "post_task.sh"))
+	f, err := os.Open(filepath.Join(mountedRootFolder, "post_task.sh"))
 	f.WriteString("#!/bin/bash\n")
 
 	postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
