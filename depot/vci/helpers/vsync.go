@@ -30,6 +30,9 @@ func NewVSync(logger lager.Logger) *VSync {
 }
 
 func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, vol *aci.Volume, vm *aci.VolumeMount, parentExists bool, destinationInContainer string) error {
+	v.logger.Info("#########(andliu) extracting to azure share.", lager.Data{
+		"destinationInContainer": destinationInContainer,
+	})
 	// extract to a folder first, then copy to the target first.
 	extractedFolder, err := ioutil.TempDir("/tmp", "folder_extracted")
 	extra := extractor.NewTar()
@@ -86,17 +89,6 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, vol *aci.Volume, vm *a
 			})
 			return err
 		}
-		// mount it
-		// err = v.CopyFolderToAzureShare(tempFolder, storageID, storageSecret, shareName)
-		// if err == nil {
-		// 	v.logger.Info("#########(andliu) ExtractToAzureShare succeeded.", lager.Data{
-		// 		"tempFolder": tempFolder,
-		// 		"shareName":  shareName})
-		// 	return nil
-		// } else {
-		// 	v.logger.Info("#########(andliu) ExtractToAzureShare copy to azure share failed.", lager.Data{"err": err.Error()})
-		// 	return err
-		// }
 	} else {
 		v.logger.Info("#########(andliu) ExtractToAzureShare extract to temp folder failed.", lager.Data{"err": err.Error()})
 		return err

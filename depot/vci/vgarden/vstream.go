@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/executor/depot/vci/helpers"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
@@ -220,6 +221,51 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	}
 	vsync := helpers.NewVSync(c.logger)
 	err = vsync.ExtractToAzureShare(reader, vol, vm, parentExist, destination)
+
+	if !parentExist {
+		var azAuth *goaci.Authentication
+
+		executorEnv := model.GetExecutorEnvInstance()
+		config := executorEnv.Config.ContainerProviderConfig
+		azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
+
+		aciClient, err := aci.NewClient(azAuth)
+		if err == nil {
+			containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
+			if err == nil {
+				containerGroupGot.ContainerGroupProperties.Volumes = append(
+					containerGroupGot.ContainerGroupProperties.Volumes, *vol)
+
+				for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+					containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+						executorEnv.Config.ContainerProviderConfig.StorageSecret
+				}
+
+				for idx, _ := range containerGroupGot.ContainerGroupProperties.Containers {
+					containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts = append(
+						containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts, *vm)
+				}
+
+				// newVolume := aci.Volume{Name: shareName, AzureFile: azureFile}
+				c.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
+				containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+				retry := 0
+				for err != nil && retry < 10 {
+					c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+					time.Sleep(60 * time.Second)
+					containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+					retry++
+				}
+				if err == nil {
+					c.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
+				} else {
+					c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+				}
+			} else {
+				c.logger.Info("#########(andliu) get container group failed.", lager.Data{"err": err.Error()})
+			}
+		}
+	}
 
 	// vsync := helpers.NewVSync(c.logger)
 
