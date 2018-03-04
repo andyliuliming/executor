@@ -68,8 +68,10 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		containerProperties.Command = append(containerProperties.Command, "-c")
 
 		const prepareScript = `
-	#// set -e
+	echo "#####whoami"
 	whoami
+	echo "#####pwd"
+	pwd
 	echo "#####now /"
 	ls /
 	echo "#####ls /tmp"
