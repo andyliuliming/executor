@@ -2,9 +2,6 @@ package vgarden // import "code.cloudfoundry.org/executor/depot/vci/vgarden"
 import (
 	"strings"
 
-	"code.cloudfoundry.org/executor/depot/vci/helpers"
-	"code.cloudfoundry.org/executor/depot/vci/vstore"
-
 	"code.cloudfoundry.org/executor/model"
 	"code.cloudfoundry.org/garden"
 	GardenClient "code.cloudfoundry.org/garden/client"
@@ -51,59 +48,6 @@ func (c *client) Ping() error {
 func (c *client) Capacity() (garden.Capacity, error) {
 	c.logger.Info("########(andliu) Capacity")
 	return c.inner.Capacity()
-}
-
-func (c *client) prepareVirtualShares(handle string, bindMounts []garden.BindMount) ([]aci.Volume, []aci.VolumeMount, error) {
-	vstore := vstore.NewVStore()
-	var volumeMounts []aci.VolumeMount
-	var volumes []aci.Volume
-	for _, bindMount := range bindMounts {
-		shareName, err := vstore.CreateFolder(handle, bindMount.DstPath)
-		c.logger.Info("#########(andliu) create folder.", lager.Data{
-			"handle": handle, "bindMount": bindMount, "shareName": shareName})
-		if err == nil {
-			// 1. mount the share created in the virtual diego cell
-			// 2. copy all the files in the bindMount.SrcPath to that share.
-			// 3. unmount it.
-			// merge the folder to the parent.
-			azureFile := &aci.AzureFileVolume{
-				ReadOnly:           false,
-				ShareName:          shareName,
-				StorageAccountName: model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId,
-				StorageAccountKey:  model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret,
-			}
-			volume := aci.Volume{
-				Name:      shareName,
-				AzureFile: azureFile,
-			}
-			volumes = append(volumes, volume)
-
-			volumeMount := aci.VolumeMount{
-				Name:      shareName,
-				MountPath: bindMount.DstPath,
-				ReadOnly:  false,
-			}
-			vsync := helpers.NewVSync(c.logger)
-			err = vsync.CopyFolderToAzureShare(bindMount.SrcPath, azureFile.StorageAccountName, azureFile.StorageAccountKey, azureFile.ShareName)
-			if err != nil {
-				c.logger.Info("############(andliu) copy folder failed.", lager.Data{
-					"err":       err.Error(),
-					"shareName": azureFile.ShareName})
-			} else {
-				c.logger.Info("############(andliu) copy folder succeeded.", lager.Data{
-					"bindMount": bindMount,
-					"shareName": azureFile.ShareName})
-			}
-			volumeMounts = append(volumeMounts, volumeMount)
-		} else {
-			c.logger.Info("########(andliu) create folder failed.", lager.Data{
-				// "handle":      handle,
-				// "destination": bindMount.DstPath,
-				"err": err.Error()})
-			// TODO handle the error case.
-		}
-	}
-	return volumes, volumeMounts, nil
 }
 
 func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
@@ -171,7 +115,6 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		// we need to merge the bindMounts together
 		vst := NewVStream(c.logger)
 		volumes, volumeMounts, err := vst.PrepareVolumeMounts(handle, spec.BindMounts)
-		// volumes, volumeMounts, err := c.prepareVirtualShares(handle, spec.BindMounts)
 		c.logger.Info("###########(andliu) prepareVirtualShares result.",
 			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})
 		if err == nil {
