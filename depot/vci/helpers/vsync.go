@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+
+	"path/filepath"
 
 	"code.cloudfoundry.org/archiver/extractor"
+	"github.com/virtualcloudfoundry/goaci/aci"
 
 	"code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/mount"
+	"code.cloudfoundry.org/executor/model"
 	"code.cloudfoundry.org/lager"
 )
 
@@ -24,22 +29,74 @@ func NewVSync(logger lager.Logger) *VSync {
 	}
 }
 
-func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecret, shareName string) error {
+func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, vol *aci.Volume, vm *aci.VolumeMount, parentExists bool, destinationInContainer string) error {
 	// extract to a folder first, then copy to the target first.
-	tempFolder, err := ioutil.TempDir("/tmp", "folder_extracted")
+	extractedFolder, err := ioutil.TempDir("/tmp", "folder_extracted")
 	extra := extractor.NewTar()
-	err = extra.ExtractStream(tempFolder, reader)
+	err = extra.ExtractStream(extractedFolder, reader)
 	if err == nil {
-		err = v.CopyFolderToAzureShare(tempFolder, storageID, storageSecret, shareName)
+		mountFolder, err := ioutil.TempDir("/tmp", "folder_to_azure_")
+
+		mounter := mount.NewMounter()
+		options := []string{
+			"vers=3.0",
+			fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
+			fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
+			"dir_mode=0777,file_mode=0777,serverino",
+		}
+		// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
+		options = append(options, "port=444")
+		azureFilePath := fmt.Sprintf("//40.112.190.242/%s", vol.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+		err = mounter.Mount(azureFilePath, mountFolder, "cifs", options)
+		// err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
 		if err == nil {
-			v.logger.Info("#########(andliu) ExtractToAzureShare succeeded.", lager.Data{
-				"tempFolder": tempFolder,
-				"shareName":  shareName})
+			var targetFolder string
+			if parentExists {
+				// make sub folder.
+				// bindMount.DstPath  /tmp/lifecycle
+				// vm.MountPath	 /tmp
+				rel, err := filepath.Rel(vm.MountPath, destinationInContainer)
+				if err != nil {
+					v.logger.Info("##########(andliu) filepath.Rel failed.", lager.Data{"err": err.Error()})
+				}
+				targetFolder = filepath.Join(mountFolder, rel)
+				err = os.MkdirAll(targetFolder, os.ModeDir)
+				if err != nil {
+					v.logger.Info("##########(andliu) MkdirAll failed.", lager.Data{"err": err.Error()})
+				}
+			} else {
+				targetFolder = mountFolder
+			}
+			fsync := fsync.NewFSync()
+			err = fsync.CopyFolder(extractedFolder, targetFolder)
+			if err != nil {
+				v.logger.Info("##########(andliu) copy folder failed.", lager.Data{
+					"parentExists":    parentExists,
+					"err":             err.Error(),
+					"extractedFolder": extractedFolder,
+					"targetFolder":    targetFolder})
+				return err
+			}
+			mounter.Unmount(mountFolder)
 			return nil
 		} else {
-			v.logger.Info("#########(andliu) ExtractToAzureShare copy to azure share failed.", lager.Data{"err": err.Error()})
+			v.logger.Info("##########(andliu) mount temp folder failed.", lager.Data{
+				"azureFilePath": azureFilePath,
+				// "tempFolder":    tempFolder,
+			})
 			return err
 		}
+		// mount it
+		// err = v.CopyFolderToAzureShare(tempFolder, storageID, storageSecret, shareName)
+		// if err == nil {
+		// 	v.logger.Info("#########(andliu) ExtractToAzureShare succeeded.", lager.Data{
+		// 		"tempFolder": tempFolder,
+		// 		"shareName":  shareName})
+		// 	return nil
+		// } else {
+		// 	v.logger.Info("#########(andliu) ExtractToAzureShare copy to azure share failed.", lager.Data{"err": err.Error()})
+		// 	return err
+		// }
 	} else {
 		v.logger.Info("#########(andliu) ExtractToAzureShare extract to temp folder failed.", lager.Data{"err": err.Error()})
 		return err
@@ -49,7 +106,7 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, storageID, storageSecr
 func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName string) error {
 	v.logger.Info("##########(andliu) copy folder to azure share.", lager.Data{"src": src, "shareName": shareName})
 	mounter := mount.NewMounter()
-	tempFolder, err := v.mountToTempFolder(storageID, storageSecret, shareName)
+	tempFolder, err := v.MountToTempFolder(storageID, storageSecret, shareName)
 	if err == nil {
 		fsync := fsync.NewFSync()
 		err = fsync.CopyFolder(src, tempFolder)
@@ -64,7 +121,7 @@ func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName 
 	}
 }
 
-func (v *VSync) mountToTempFolder(storageID, storageSecret, shareName string) (string, error) {
+func (v *VSync) MountToTempFolder(storageID, storageSecret, shareName string) (string, error) {
 	options := []string{
 		"vers=3.0",
 		fmt.Sprintf("username=%s", storageID),
