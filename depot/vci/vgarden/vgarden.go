@@ -63,7 +63,7 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		var containerProperties aci.ContainerProperties
 		containerProperties.Image = "cloudfoundry/cflinuxfs2"
 
-		containerGroup.ContainerGroupProperties.RestartPolicy = aci.OnFailure
+		containerGroup.ContainerGroupProperties.RestartPolicy = aci.Never
 		containerProperties.Command = append(containerProperties.Command, "/bin/bash")
 		containerProperties.Command = append(containerProperties.Command, "-c")
 
