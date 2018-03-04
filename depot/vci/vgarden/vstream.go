@@ -342,8 +342,13 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 			"dest": mountedRootFolder})
 	}
 	f, err := os.Open(filepath.Join(mountedRootFolder, "post_task.sh"))
-	f.WriteString("#!/bin/bash\n")
-
+	if err != nil {
+		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
+			"err":  err.Error(),
+			"src":  extractedFolder,
+			"dest": mountedRootFolder})
+	}
+	// f.WriteString("#!/bin/bash\n")
 	postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
 	c.logger.Info("########(andliu) postCopyTask.", lager.Data{"postCopyTask": postCopyTask})
 	f.WriteString(postCopyTask)
