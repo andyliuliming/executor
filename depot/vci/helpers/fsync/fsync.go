@@ -3,6 +3,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"code.cloudfoundry.org/lager"
 )
 
 type FSync interface {
@@ -10,6 +12,7 @@ type FSync interface {
 }
 
 type fSync struct {
+	logger lager.Logger
 }
 
 const (
@@ -17,8 +20,10 @@ const (
 	defaultRsyncCommand string = "rsync"
 )
 
-func NewFSync() FSync {
-	return &fSync{}
+func NewFSync(logger lager.Logger) FSync {
+	return &fSync{
+		logger: logger,
+	}
 }
 
 func (f *fSync) CopyFolder(src, dest string) error {
@@ -43,6 +48,7 @@ func (f *fSync) CopyFolder(src, dest string) error {
 }
 
 func (f *fSync) doRsync(rsyncCommand, src, dest string) error {
+	f.logger.Info("#########(andliu) rsync.", lager.Data{"src": src, "dest": dest})
 	rsyncArgs := makeRsyncArgs(fmt.Sprintf("%s/", src), dest)
 	command := exec.Command("rsync", rsyncArgs...)
 	output, err := command.CombinedOutput()
@@ -52,6 +58,7 @@ func (f *fSync) doRsync(rsyncCommand, src, dest string) error {
 		return fmt.Errorf("rsync failed: %v\nRsync command: %s\nRsync arguments: %s\nOutput: %s\n",
 			err, rsyncCommand, args, string(output))
 	}
+	f.logger.Info("#########(andliu) rsync end.", lager.Data{"src": src, "dest": dest})
 	return err
 }
 

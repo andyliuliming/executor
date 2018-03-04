@@ -70,7 +70,7 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, vol *aci.Volume, vm *a
 			} else {
 				targetFolder = mountFolder
 			}
-			fsync := fsync.NewFSync()
+			fsync := fsync.NewFSync(v.logger)
 			err = fsync.CopyFolder(extractedFolder, targetFolder)
 			if err != nil {
 				v.logger.Info("##########(andliu) copy folder failed.", lager.Data{
@@ -100,7 +100,7 @@ func (v *VSync) CopyFolderToAzureShare(src, storageID, storageSecret, shareName 
 	mounter := mount.NewMounter()
 	tempFolder, err := v.MountToTempFolder(storageID, storageSecret, shareName)
 	if err == nil {
-		fsync := fsync.NewFSync()
+		fsync := fsync.NewFSync(v.logger)
 		err = fsync.CopyFolder(src, tempFolder)
 		if err == nil {
 			mounter.Unmount(tempFolder)

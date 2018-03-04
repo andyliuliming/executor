@@ -176,7 +176,7 @@ func (c *VStream) PrepareVolumeMounts(handle string, bindMounts []garden.BindMou
 				} else {
 					targetFolder = tempFolder
 				}
-				fsync := fsync.NewFSync()
+				fsync := fsync.NewFSync(c.logger)
 				err = fsync.CopyFolder(bindMount.SrcPath, targetFolder)
 				if err != nil {
 					c.logger.Info("##########(andliu) copy folder failed.", lager.Data{
