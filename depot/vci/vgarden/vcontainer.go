@@ -113,6 +113,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 
 				var runScript = fmt.Sprintf(`
 		echo "real execute."
+		whoami
 		%s %s
 	`, spec.Path, strings.Join(spec.Args, " "))
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
