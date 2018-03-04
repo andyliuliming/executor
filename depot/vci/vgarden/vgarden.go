@@ -1,5 +1,6 @@
 package vgarden // import "code.cloudfoundry.org/executor/depot/vci/vgarden"
 import (
+	"fmt"
 	"strings"
 
 	"code.cloudfoundry.org/executor/model"
@@ -67,24 +68,14 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		containerProperties.Command = append(containerProperties.Command, "/bin/bash")
 		containerProperties.Command = append(containerProperties.Command, "-c")
 
-		const prepareScript = `
+		var prepareScript = `
 	echo "#####whoami"
 	whoami
 	echo "#####pwd"
 	pwd
-	echo "#####now /"
-	ls /
-	echo "#####ls /tmp"
-	ls /tmp
-	echo "#####now /home"
-	ls /home
-	echo "#####now /home/vcap"
-	ls /home/vcap
-	echo "#####now remove /home/vcap/app"
-	rm -rf /home/vcap/app
-	echo "#####check /home/vcap/app gone"
-	ls /home/vcap
+	%s/post_task.sh
 `
+		prepareScript = fmt.Sprintf(prepareScript, GetSwapRoot())
 		containerProperties.Command = append(containerProperties.Command, prepareScript)
 		if len(spec.NetIn) > 0 {
 			containerGroup.IPAddress = &aci.IPAddress{
@@ -117,7 +108,8 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		handle := spec.Handle
 		// we need to merge the bindMounts together
 		vst := NewVStream(c.logger)
-		volumes, volumeMounts, err := vst.PrepareVolumeMounts(handle, spec.BindMounts)
+		volumes, volumeMounts, err := vst.PrepareSwapVolumeMount(handle, spec.BindMounts)
+		//vst.PrepareVolumeMounts(handle, spec.BindMounts)
 		c.logger.Info("###########(andliu) prepareVirtualShares result.",
 			lager.Data{"volumes": volumes, "volumeMounts": volumeMounts})
 		if err == nil {

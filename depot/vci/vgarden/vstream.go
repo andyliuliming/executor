@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/executor/depot/vci/helpers"
+	"code.cloudfoundry.org/archiver/extractor"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/mount"
 	"code.cloudfoundry.org/executor/depot/vci/vstore"
@@ -17,6 +17,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	"github.com/Azure/go-autorest/autorest/azure"
+	uuid "github.com/satori/go.uuid"
 	"github.com/virtualcloudfoundry/goaci"
 	"github.com/virtualcloudfoundry/goaci/aci"
 )
@@ -91,6 +92,113 @@ func (c *VStream) buildVolumes(handle string, bindMounts []garden.BindMount) ([]
 		}
 	}
 	return volumes, volumeMounts
+}
+
+func (c *VStream) GetContainerSwapRootShareFolder(handle string) string {
+	shareName := fmt.Sprintf("root-%s", handle)
+	return shareName
+}
+
+func (c *VStream) MountContainerRoot(handle string) (string, error) {
+	shareName := c.GetContainerSwapRootShareFolder(handle)
+	vs := vstore.NewVStore()
+	// 1. prepare the volumes.
+	// create share folder
+	err := vs.CreateShareFolder(shareName)
+	c.logger.Info("#########(andliu) create share folder, will fail second time.")
+	mountedRootFolder, err := ioutil.TempDir("/tmp", "folder_to_azure_")
+	options := []string{
+		"vers=3.0",
+		fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
+		fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
+		"dir_mode=0777,file_mode=0777,serverino",
+	}
+	// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
+	options = append(options, "port=444")
+	azureFilePath := fmt.Sprintf("//40.112.190.242/%s", shareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+	mounter := mount.NewMounter()
+	err = mounter.Mount(azureFilePath, mountedRootFolder, "cifs", options)
+	if err != nil {
+		c.logger.Info("#######(andliu) PrepareSwapVolumeMount mount failed.", lager.Data{
+			"src":  azureFilePath,
+			"dest": mountedRootFolder,
+			"err":  err.Error()})
+		return "", err
+	}
+	return mountedRootFolder, nil
+}
+
+func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.BindMount) ([]aci.Volume, []aci.VolumeMount, error) {
+	var volumeMounts []aci.VolumeMount
+	var volumes []aci.Volume
+	// shareName := vstore.BuildShareName(handle, buildInFolder)
+	shareName := c.GetContainerSwapRootShareFolder(handle)
+
+	azureFile := &aci.AzureFileVolume{
+		ReadOnly:           false,
+		ShareName:          shareName,
+		StorageAccountName: model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId,
+		StorageAccountKey:  model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret,
+	}
+	volume := aci.Volume{
+		Name:      shareName,
+		AzureFile: azureFile,
+	}
+	volumes = append(volumes, volume)
+
+	volumeMount := aci.VolumeMount{
+		Name:      shareName,
+		MountPath: GetSwapRoot(),
+		ReadOnly:  false,
+	}
+	volumeMounts = append(volumeMounts, volumeMount)
+
+	mountedRootFolder, err := c.MountContainerRoot(handle)
+	options := []string{
+		"vers=3.0",
+		fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
+		fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
+		"dir_mode=0777,file_mode=0777,serverino",
+	}
+	// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
+	options = append(options, "port=444")
+	azureFilePath := fmt.Sprintf("//40.112.190.242/%s", volume.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+	mounter := mount.NewMounter()
+	err = mounter.Mount(azureFilePath, mountedRootFolder, "cifs", options)
+	if err != nil {
+		c.logger.Info("#######(andliu) PrepareSwapVolumeMount mount failed.", lager.Data{
+			"src":  azureFilePath,
+			"dest": mountedRootFolder,
+			"err":  err.Error()})
+		return nil, nil, err
+	}
+
+	f, err := os.Create(filepath.Join(mountedRootFolder, "post_task.sh"))
+	f.WriteString("#!/bin/bash\n")
+
+	for _, bindMount := range bindMounts {
+		fsync := fsync.NewFSync(c.logger)
+		relativePath := fmt.Sprintf(".%s", bindMount.DstPath) // ./tmp/app
+		targetFolder := filepath.Join(mountedRootFolder, relativePath)
+		err = fsync.CopyFolder(bindMount.SrcPath, targetFolder)
+
+		postCopyTask := fmt.Sprintf("rsync -a %s %s\n", filepath.Join(GetSwapRoot(), relativePath), bindMount.DstPath)
+		f.WriteString(postCopyTask)
+		c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
+		if err != nil {
+			c.logger.Info("#######(andliu) PrepareSwapVolumeMount copy folder failed.", lager.Data{
+				"src":  bindMount.SrcPath,
+				"dest": targetFolder,
+				"err":  err.Error(),
+			})
+		}
+	}
+	f.Close()
+	err = mounter.Unmount(mountedRootFolder)
+	if err != nil {
+		c.logger.Info("#######(andliu) umount failed.", lager.Data{"err": err.Error(), "folder": mountedRootFolder})
+	}
+	return volumes, volumeMounts, nil
 }
 
 // 1. provide one api for prepare the azure mounts.
@@ -215,57 +323,109 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 		finaldestination = destination
 	}
 	// handle := step.container.Handle()
-	vol, vm, parentExist, err := c.appendBindMount(handle, finaldestination)
+	extractedFolder, err := ioutil.TempDir("/tmp", "folder_extracted")
+	extra := extractor.NewTar()
+	err = extra.ExtractStream(extractedFolder, reader)
+
+	mounter := mount.NewMounter()
+	mountedRootFolder, err := c.MountContainerRoot(handle)
+	fsync := fsync.NewFSync(c.logger)
+	id, _ := uuid.NewV4()
+	subfolder := id.String()
+	c.logger.Info("##########(andliu) subfolder name is.", lager.Data{"subfolder": subfolder})
+	err = fsync.CopyFolder(extractedFolder, filepath.Join(mountedRootFolder, subfolder))
 	if err != nil {
-		return err
+		c.logger.Info("########(andliu) copy failed.", lager.Data{
+			"err":  err.Error(),
+			"src":  extractedFolder,
+			"dest": mountedRootFolder})
 	}
-	vsync := helpers.NewVSync(c.logger)
-	err = vsync.ExtractToAzureShare(reader, vol, vm, parentExist, destination)
+	f, err := os.Create(filepath.Join(mountedRootFolder, "post_task.sh"))
+	f.WriteString("#!/bin/bash\n")
 
-	if !parentExist {
-		var azAuth *goaci.Authentication
-
-		executorEnv := model.GetExecutorEnvInstance()
-		config := executorEnv.Config.ContainerProviderConfig
-		azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
-
-		aciClient, err := aci.NewClient(azAuth)
+	postCopyTask := fmt.Sprintf("rsync -a %s %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
+	c.logger.Info("########(andliu) postCopyTask.", lager.Data{"postCopyTask": postCopyTask})
+	f.WriteString(postCopyTask)
+	f.Close()
+	mounter.Unmount(mountedRootFolder)
+	var azAuth *goaci.Authentication
+	aciClient, err := aci.NewClient(azAuth)
+	executorEnv := model.GetExecutorEnvInstance()
+	config := executorEnv.Config.ContainerProviderConfig
+	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
+	containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
+	if err == nil {
+		for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+			containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+				executorEnv.Config.ContainerProviderConfig.StorageSecret
+		}
+		c.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
+		containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+		retry := 0
+		for err != nil && retry < 10 {
+			c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+			time.Sleep(60 * time.Second)
+			containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+			retry++
+		}
 		if err == nil {
-			containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
-			if err == nil {
-				containerGroupGot.ContainerGroupProperties.Volumes = append(
-					containerGroupGot.ContainerGroupProperties.Volumes, *vol)
-
-				for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
-					containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
-						executorEnv.Config.ContainerProviderConfig.StorageSecret
-				}
-
-				for idx, _ := range containerGroupGot.ContainerGroupProperties.Containers {
-					containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts = append(
-						containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts, *vm)
-				}
-
-				// newVolume := aci.Volume{Name: shareName, AzureFile: azureFile}
-				c.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
-				containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
-				retry := 0
-				for err != nil && retry < 10 {
-					c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
-					time.Sleep(60 * time.Second)
-					containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
-					retry++
-				}
-				if err == nil {
-					c.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
-				} else {
-					c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
-				}
-			} else {
-				c.logger.Info("#########(andliu) get container group failed.", lager.Data{"err": err.Error()})
-			}
+			c.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
+		} else {
+			c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
 		}
 	}
+	return err
+	// vol, vm, parentExist, err := c.appendBindMount(handle, finaldestination)
+	// if err != nil {
+	// 	return err
+	// }
+	// vsync := helpers.NewVSync(c.logger)
+	// err = vsync.ExtractToAzureShare(reader, vol, vm, parentExist, destination)
+
+	// if !parentExist {
+	// 	var azAuth *goaci.Authentication
+
+	// 	executorEnv := model.GetExecutorEnvInstance()
+	// 	config := executorEnv.Config.ContainerProviderConfig
+	// 	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
+
+	// 	aciClient, err := aci.NewClient(azAuth)
+	// 	if err == nil {
+	// 		containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
+	// 		if err == nil {
+	// 			containerGroupGot.ContainerGroupProperties.Volumes = append(
+	// 				containerGroupGot.ContainerGroupProperties.Volumes, *vol)
+
+	// 			for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+	// 				containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+	// 					executorEnv.Config.ContainerProviderConfig.StorageSecret
+	// 			}
+
+	// 			for idx, _ := range containerGroupGot.ContainerGroupProperties.Containers {
+	// 				containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts = append(
+	// 					containerGroupGot.ContainerGroupProperties.Containers[idx].VolumeMounts, *vm)
+	// 			}
+
+	// 			// newVolume := aci.Volume{Name: shareName, AzureFile: azureFile}
+	// 			c.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
+	// 			containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+	// 			retry := 0
+	// 			for err != nil && retry < 10 {
+	// 				c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+	// 				time.Sleep(60 * time.Second)
+	// 				containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+	// 				retry++
+	// 			}
+	// 			if err == nil {
+	// 				c.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
+	// 			} else {
+	// 				c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+	// 			}
+	// 		} else {
+	// 			c.logger.Info("#########(andliu) get container group failed.", lager.Data{"err": err.Error()})
+	// 		}
+	// 	}
+	// }
 
 	// vsync := helpers.NewVSync(c.logger)
 

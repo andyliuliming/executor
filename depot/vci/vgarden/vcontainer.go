@@ -117,6 +117,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 		echo "#####pwd"
 		pwd
 		%s %s
+		echo "post actions.(TODO)"
 	`, spec.Path, strings.Join(spec.Args, " "))
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})
