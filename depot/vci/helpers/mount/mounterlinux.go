@@ -51,7 +51,7 @@ func (mounter *MounterLinux) Unmount(target string) error {
 }
 
 // sudo mount -t cifs //<storage-account-name>.file.core.windows.net/<share-name> <mount-point>
-// -o vers=<smb-version>,username=<storage-account-name>,password=<storage-account-key>,dir_mode=0777,file_mode=0777,serverino
+// -o vers=<smb-version>,username=<storage-account-name>,password=<storage-account-key>,dir_mode=0777,file_mode=0777,mfsymlinks
 // makeMountArgs makes the arguments to the mount(8) command.
 func makeMountArgs(source, target, fstype string, options []string) []string {
 	// Build mount command as follows:

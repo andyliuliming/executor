@@ -45,7 +45,7 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, vol *aci.Volume, vm *a
 			"vers=3.0",
 			fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
 			fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
-			"dir_mode=0777,file_mode=0777,serverino",
+			"dir_mode=0777,file_mode=0777,mfsymlinks,serverino", //  for noserverino https://linux.die.net/man/8/mount.cifs
 		}
 		// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 		options = append(options, "port=444")
@@ -118,7 +118,7 @@ func (v *VSync) MountToTempFolder(storageID, storageSecret, shareName string) (s
 		"vers=3.0",
 		fmt.Sprintf("username=%s", storageID),
 		fmt.Sprintf("password=%s", storageSecret),
-		"dir_mode=0777,file_mode=0777,serverino",
+		"dir_mode=0777,file_mode=0777,mfsymlinks,serverino",
 	}
 
 	mounter := mount.NewMounter()
