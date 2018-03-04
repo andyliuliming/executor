@@ -350,9 +350,11 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	f.Close()
 	mounter.Unmount(mountedRootFolder)
 	var azAuth *goaci.Authentication
-	aciClient, err := aci.NewClient(azAuth)
 	executorEnv := model.GetExecutorEnvInstance()
 	config := executorEnv.Config.ContainerProviderConfig
+	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
+
+	aciClient, err := aci.NewClient(azAuth)
 	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
 	containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
 	if err == nil {
@@ -374,6 +376,8 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 		} else {
 			c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
 		}
+	} else {
+		c.logger.Info("#########(andliu) StreamIn GetContainerGroup failed.", lager.Data{"handle": handle, "dest": destination})
 	}
 	return err
 	// vol, vm, parentExist, err := c.appendBindMount(handle, finaldestination)
@@ -512,8 +516,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// } else {
 	// 	c.logger.Info("##########(andliu) new client.", lager.Data{"err": err.Error()})
 	// }
-	c.logger.Info("#########(andliu) VStream StreamIn ends.", lager.Data{"handle": handle, "dest": destination})
-	return err
+	// return err
 }
 
 func (c *VStream) appendBindMount(handle, destination string) (*aci.Volume, *aci.VolumeMount, bool, error) {
