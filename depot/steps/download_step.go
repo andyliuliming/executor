@@ -97,6 +97,7 @@ func (step *downloadStep) perform() error {
 	err = vs.StreamIn(step.container.Handle(), step.model.To, downloadedFile)
 	// downloadedFile.
 	if err != nil {
+		step.logger.Info("###########(andliu) vstreamin failed.", lager.Data{"err": err.Error()})
 		return err
 	}
 

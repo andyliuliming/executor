@@ -204,6 +204,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// extract the tar to the target model.To
 	// TODO create one share folder for /tmp
 	// 1. get the container configs.
+	c.logger.Info("#########(andliu) VStream StreamIn starts.", lager.Data{"handle": handle, "dest": destination})
 	var finaldestination string
 	if destination == "." {
 		// TODO: workaround, we guess . is the /home/vcap.
@@ -304,7 +305,8 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// } else {
 	// 	c.logger.Info("##########(andliu) new client.", lager.Data{"err": err.Error()})
 	// }
-	return nil
+	c.logger.Info("#########(andliu) VStream StreamIn ends.", lager.Data{"handle": handle, "dest": destination})
+	return err
 }
 
 func (c *VStream) appendBindMount(handle, destination string) (*aci.Volume, *aci.VolumeMount, bool, error) {
