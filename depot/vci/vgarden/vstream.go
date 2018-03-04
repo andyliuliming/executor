@@ -355,7 +355,6 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
 
 	aciClient, err := aci.NewClient(azAuth)
-	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
 	containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
 	if err == nil {
 		for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
