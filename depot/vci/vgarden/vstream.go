@@ -181,10 +181,6 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 		relativePath := fmt.Sprintf(".%s", bindMount.DstPath) // ./tmp/app
 		targetFolder := filepath.Join(mountedRootFolder, relativePath)
 		err = fsync.CopyFolder(bindMount.SrcPath, targetFolder)
-
-		postCopyTask := fmt.Sprintf("rsync -a %s %s\n", filepath.Join(GetSwapRoot(), relativePath), bindMount.DstPath)
-		f.WriteString(postCopyTask)
-		c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
 		if err != nil {
 			c.logger.Info("#######(andliu) PrepareSwapVolumeMount copy folder failed.", lager.Data{
 				"src":  bindMount.SrcPath,
@@ -192,6 +188,11 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 				"err":  err.Error(),
 			})
 		}
+		postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), relativePath), bindMount.DstPath)
+		c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
+		f.WriteString(postCopyTask)
+		// c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
+
 	}
 	f.Close()
 	err = mounter.Unmount(mountedRootFolder)
@@ -323,7 +324,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 		finaldestination = destination
 	}
 	// handle := step.container.Handle()
-	extractedFolder, err := ioutil.TempDir("/tmp", "folder_extracted")
+	extractedFolder, err := ioutil.TempDir("/tmp", "folder_extracted_")
 	extra := extractor.NewTar()
 	err = extra.ExtractStream(extractedFolder, reader)
 

@@ -1,6 +1,7 @@
 package fsync // import "code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -48,7 +49,12 @@ func (f *fSync) CopyFolder(src, dest string) error {
 }
 
 func (f *fSync) doRsync(rsyncCommand, src, dest string) error {
-	f.logger.Info("#########(andliu) rsync.", lager.Data{"src": src, "dest": dest})
+	err := os.MkdirAll(dest, os.ModeDir)
+	if err != nil {
+		f.logger.Info("#########(andliu) MkdirAll failed.", lager.Data{"dest": dest})
+		return err
+	}
+	f.logger.Info("#########(andliu) doRsync.", lager.Data{"src": src, "dest": dest})
 	rsyncArgs := makeRsyncArgs(fmt.Sprintf("%s/", src), dest)
 	command := exec.Command("rsync", rsyncArgs...)
 	output, err := command.CombinedOutput()
