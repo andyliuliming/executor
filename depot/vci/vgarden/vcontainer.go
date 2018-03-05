@@ -137,17 +137,23 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 		ls %s
 		echo "#####ls /tmp"
 		ls /tmp
+		echo "#####ls /home/vcap"
+		ls /home/vcap
 		echo "#####show post_task.sh content:"
-	    cat %s/post_task.sh
+		cat %s/post_task.sh
+		echo "need to run as %s"
 		echo "#####executing post_task.sh"
+		sudo -u vcap bash << EOF
 		%s/post_task.sh
 		echo "#####execute real run. %s"
 		%s
 		echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
 		cp -f /tmp/droplet %s/droplet
+		EOF
 	`,
 					GetSwapRoot(),
 					GetSwapRoot(),
+					spec.User,
 					GetSwapRoot(),
 					realCommand,
 					realCommand,
