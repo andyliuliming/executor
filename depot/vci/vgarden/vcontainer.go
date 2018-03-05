@@ -127,6 +127,28 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 					}
 					args = append(args, argToUse)
 				}
+				// 这个是跑在container里面的脚本。
+				// 				const runnerScript = `
+				// 	set -e
+				// 	{{if .RSync -}}
+				// 	rsync -a /tmp/local/ /home/vcap/app/
+				// 	{{end -}}
+				// 	if [[ ! -z $(ls -A /home/vcap/app) ]]; then
+				// 		exclude='--exclude=./app'
+				// 	fi
+				// 	tar $exclude -C /home/vcap -xzf /tmp/droplet
+				// 	chown -R vcap:vcap /home/vcap
+				// 	{{if .RSync -}}
+				// 	if [[ -z $(ls -A /tmp/local) ]]; then
+				// 		rsync -a /home/vcap/app/ /tmp/local/
+				// 	fi
+				// 	{{end -}}
+				// 	command=$1
+				// 	if [[ -z $command ]]; then
+				// 		command=$(jq -r .start_command /home/vcap/staging_info.yml)
+				// 	fi
+				// 	exec /tmp/lifecycle/launcher /home/vcap/app "$command" ''
+				// `
 				realCommand := fmt.Sprintf("%s %s", spec.Path, strings.Join(args, " "))
 				var runScript = fmt.Sprintf(`
 		echo "#####real execute.whoami"
