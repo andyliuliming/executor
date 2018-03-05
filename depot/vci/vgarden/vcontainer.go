@@ -111,16 +111,24 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "/bin/bash")
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "-c")
 
+				// TODO judge whether it's stage.
 				var runScript = fmt.Sprintf(`
 		echo "#####real execute.whoami"
 		whoami
 		echo "#####pwd"
 		pwd
-		echo "post stage tasks."
+		echo "#####ls /swaproot"
+		ls %s
+		echo "#####ls /tmp"
+		ls /tmp
+		echo "#####show post_task.sh content:"
+	    cat %s/post_task.sh
+		echo "#####executing post_task.sh"
 		%s/post_task.sh
+		echo "#####execute real run."
 		%s %s
-		echo "post actions.(TODO)"
-	`, GetSwapRoot(), spec.Path, strings.Join(spec.Args, " "))
+		echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
+	`, GetSwapRoot(), GetSwapRoot(), GetSwapRoot(), spec.Path, strings.Join(spec.Args, " "))
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})
 			}

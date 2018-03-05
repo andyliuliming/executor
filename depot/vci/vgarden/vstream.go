@@ -188,7 +188,9 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 				"err":  err.Error(),
 			})
 		}
-		postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), relativePath), bindMount.DstPath)
+		srcFolderPath := filepath.Join(GetSwapRoot(), relativePath)
+		destFolderPath := bindMount.DstPath
+		postCopyTask := fmt.Sprintf("mkdir -p %s\nrsync -a %s/ %s\n", destFolderPath, srcFolderPath, destFolderPath)
 		c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
 		f.WriteString(postCopyTask)
 		// c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
