@@ -75,6 +75,11 @@ func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) 
 }
 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
+	handle := container.Handle()
+	if len(handle) != len("3fa79176-be9a-4496-bda2-cdaa06c32480") { // skip for the staging container for now.
+		container.logger.Info("#########(andliu) skip for the stage container.")
+		return container.inner.Run(spec, io)
+	}
 	if strings.Contains(spec.Path, "healthcheck") || strings.Contains(spec.Path, "sshd") {
 		// skip health check and the sshd.
 		container.logger.Info("#########(andliu) skip for the health check and the sshd.")
@@ -90,7 +95,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 
 	aciClient, err := aci.NewClient(azAuth)
 	if err == nil {
-		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, container.inner.Handle())
+		containerGroupGot, err, code := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
 		if err == nil {
 			for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
 				containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
@@ -114,6 +119,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "-c")
 
 				// TODO judge whether it's stage.
+				realCommand := fmt.Sprintf("%s %s", spec.Path, strings.Join(spec.Args, " "))
 				var runScript = fmt.Sprintf(`
 		echo "#####real execute.whoami"
 		whoami
@@ -127,16 +133,16 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	    cat %s/post_task.sh
 		echo "#####executing post_task.sh"
 		%s/post_task.sh
-		echo "#####execute real run."
-		%s %s
+		echo "#####execute real run. %s"
+		%s
 		echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
 		cp -f /tmp/droplet %s/droplet
 	`,
 					GetSwapRoot(),
 					GetSwapRoot(),
 					GetSwapRoot(),
-					spec.Path,
-					strings.Join(spec.Args, " "),
+					realCommand,
+					realCommand,
 					GetSwapRoot())
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})

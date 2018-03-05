@@ -52,7 +52,8 @@ func (c *client) Capacity() (garden.Capacity, error) {
 }
 
 func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
-	if !strings.HasPrefix(spec.Handle, "executor-healthcheck") {
+	if len(spec.Handle) != len("3fa79176-be9a-4496-bda2-cdaa06c32480") && // skip for the staging container for now.
+		!strings.HasPrefix(spec.Handle, "executor-healthcheck") {
 		c.logger.Info("########(andliu) not health check, so create in aci.", lager.Data{"spec": spec})
 		// try to call the create
 		var containerGroup aci.ContainerGroup
