@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"code.cloudfoundry.org/archiver/extractor"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
@@ -332,6 +331,10 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 
 	mounter := mount.NewMounter()
 	mountedRootFolder, err := c.MountContainerRoot(handle)
+	if err != nil {
+		c.logger.Info("#########(andliu) mount container root failed.")
+		return err
+	}
 	fsync := fsync.NewFSync(c.logger)
 	id, _ := uuid.NewV4()
 	subfolder := id.String()
@@ -342,49 +345,55 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 			"err":  err.Error(),
 			"src":  extractedFolder,
 			"dest": mountedRootFolder})
+		return err
 	}
 	f, err := os.Open(filepath.Join(mountedRootFolder, "post_task.sh"))
+	defer f.Close()
 	if err != nil {
 		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
 			"err":  err.Error(),
 			"src":  extractedFolder,
 			"dest": mountedRootFolder})
+		return err
 	}
 	// f.WriteString("#!/bin/bash\n")
 	postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
 	c.logger.Info("########(andliu) postCopyTask.", lager.Data{"postCopyTask": postCopyTask})
-	f.WriteString(postCopyTask)
-	f.Close()
-	mounter.Unmount(mountedRootFolder)
-	var azAuth *goaci.Authentication
-	executorEnv := model.GetExecutorEnvInstance()
-	config := executorEnv.Config.ContainerProviderConfig
-	azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
-
-	aciClient, err := aci.NewClient(azAuth)
-	containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
-	if err == nil {
-		for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
-			containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
-				executorEnv.Config.ContainerProviderConfig.StorageSecret
-		}
-		c.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
-		containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
-		retry := 0
-		for err != nil && retry < 10 {
-			c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
-			time.Sleep(60 * time.Second)
-			containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
-			retry++
-		}
-		if err == nil {
-			c.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
-		} else {
-			c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
-		}
-	} else {
-		c.logger.Info("#########(andliu) StreamIn GetContainerGroup failed.", lager.Data{"handle": handle, "dest": destination})
+	_, err = f.WriteString(postCopyTask)
+	if err != nil {
+		c.logger.Info("#######(andliu) write string failed.", lager.Data{"err": err.Error()})
+		return err
 	}
+	mounter.Unmount(mountedRootFolder)
+	// var azAuth *goaci.Authentication
+	// executorEnv := model.GetExecutorEnvInstance()
+	// config := executorEnv.Config.ContainerProviderConfig
+	// azAuth = goaci.NewAuthentication(azure.PublicCloud.Name, config.ContainerId, config.ContainerSecret, config.SubscriptionId, config.OptionalParam1)
+
+	// aciClient, err := aci.NewClient(azAuth)
+	// containerGroupGot, err, _ := aciClient.GetContainerGroup(executorEnv.ResourceGroup, handle)
+	// if err == nil {
+	// 	for idx, _ := range containerGroupGot.ContainerGroupProperties.Volumes {
+	// 		containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
+	// 			executorEnv.Config.ContainerProviderConfig.StorageSecret
+	// 	}
+	// 	c.logger.Info("#########(andliu) update container group:", lager.Data{"containerGroupGot": *containerGroupGot})
+	// 	containerGroupUpdated, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+	// 	retry := 0
+	// 	for err != nil && retry < 10 {
+	// 		c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+	// 		time.Sleep(60 * time.Second)
+	// 		containerGroupUpdated, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, handle, *containerGroupGot)
+	// 		retry++
+	// 	}
+	// 	if err == nil {
+	// 		c.logger.Info("##########(andliu) update container group succeeded.", lager.Data{"containerGroupUpdated": containerGroupUpdated})
+	// 	} else {
+	// 		c.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})
+	// 	}
+	// } else {
+	// 	c.logger.Info("#########(andliu) StreamIn GetContainerGroup failed.", lager.Data{"handle": handle, "dest": destination})
+	// }
 	return err
 	// vol, vm, parentExist, err := c.appendBindMount(handle, finaldestination)
 	// if err != nil {
