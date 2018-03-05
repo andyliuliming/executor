@@ -359,6 +359,11 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// f.WriteString("#!/bin/bash\n")
 	postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
 	c.logger.Info("########(andliu) postCopyTask.", lager.Data{"postCopyTask": postCopyTask})
+	_, err = f.Seek(0, 2)
+	if err != nil {
+		c.logger.Info("#######(andliu) seek file string failed.", lager.Data{"err": err.Error()})
+		return err
+	}
 	_, err = f.WriteString(postCopyTask)
 	if err != nil {
 		c.logger.Info("#######(andliu) write string failed.", lager.Data{"err": err.Error()})
