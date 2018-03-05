@@ -128,7 +128,14 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 		echo "#####execute real run."
 		%s %s
 		echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
-	`, GetSwapRoot(), GetSwapRoot(), GetSwapRoot(), spec.Path, strings.Join(spec.Args, " "))
+		cp -f /tmp/droplet %s/droplet
+	`,
+					GetSwapRoot(),
+					GetSwapRoot(),
+					GetSwapRoot(),
+					spec.Path,
+					strings.Join(spec.Args, " "),
+					GetSwapRoot())
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})
 			}
