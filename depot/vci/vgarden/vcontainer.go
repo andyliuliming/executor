@@ -119,7 +119,15 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "-c")
 
 				// TODO judge whether it's stage.
-				realCommand := fmt.Sprintf("%s %s", spec.Path, strings.Join(spec.Args, " "))
+				args := []string{}
+				for _, arg := range spec.Args {
+					argToUse := arg
+					if arg == "" {
+						argToUse = "\"\""
+					}
+					args = append(args, argToUse)
+				}
+				realCommand := fmt.Sprintf("%s %s", spec.Path, strings.Join(args, " "))
 				var runScript = fmt.Sprintf(`
 		echo "#####real execute.whoami"
 		whoami

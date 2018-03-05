@@ -197,7 +197,7 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 
 	}
 	f.Close()
-	err = mounter.Unmount(mountedRootFolder)
+	err = mounter.Umount(mountedRootFolder)
 	if err != nil {
 		c.logger.Info("#######(andliu) umount failed.", lager.Data{"err": err.Error(), "folder": mountedRootFolder})
 	}
@@ -296,7 +296,7 @@ func (c *VStream) PrepareVolumeMounts(handle string, bindMounts []garden.BindMou
 						"bindMount":    bindMount,
 						"tempFolder":   tempFolder})
 				}
-				mounter.Unmount(tempFolder)
+				mounter.Umount(tempFolder)
 			} else {
 				c.logger.Info("##########(andliu) mount temp folder failed.", lager.Data{
 					"azureFilePath": azureFilePath,
@@ -377,7 +377,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 		time.Sleep(3 * time.Minute)
 		return err
 	}
-	mounter.Unmount(mountedRootFolder)
+	mounter.Umount(mountedRootFolder)
 	// var azAuth *goaci.Authentication
 	// executorEnv := model.GetExecutorEnvInstance()
 	// config := executorEnv.Config.ContainerProviderConfig
