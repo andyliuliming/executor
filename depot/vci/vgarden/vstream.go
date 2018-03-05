@@ -115,7 +115,7 @@ func (c *VStream) MountContainerRoot(handle string) (string, error) {
 	}
 	// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 	options = append(options, "port=444")
-	azureFilePath := fmt.Sprintf("//40.112.190.242/%s", shareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+	azureFilePath := fmt.Sprintf("//40.65.190.119/%s", shareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
 	mounter := mount.NewMounter()
 	err = mounter.Mount(azureFilePath, mountedRootFolder, "cifs", options)
 	if err != nil {
@@ -162,7 +162,7 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 	}
 	// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 	options = append(options, "port=444")
-	azureFilePath := fmt.Sprintf("//40.112.190.242/%s", volume.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+	azureFilePath := fmt.Sprintf("//40.65.190.119/%s", volume.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
 	mounter := mount.NewMounter()
 	err = mounter.Mount(azureFilePath, mountedRootFolder, "cifs", options)
 	if err != nil {
@@ -267,7 +267,7 @@ func (c *VStream) PrepareVolumeMounts(handle string, bindMounts []garden.BindMou
 			}
 			// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 			options = append(options, "port=444")
-			azureFilePath := fmt.Sprintf("//40.112.190.242/%s", vol.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+			azureFilePath := fmt.Sprintf("//40.65.190.119/%s", vol.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
 			err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
 			if err == nil {
 				var targetFolder string

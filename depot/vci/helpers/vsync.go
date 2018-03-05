@@ -49,7 +49,8 @@ func (v *VSync) ExtractToAzureShare(reader io.ReadCloser, vol *aci.Volume, vm *a
 		}
 		// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 		options = append(options, "port=444")
-		azureFilePath := fmt.Sprintf("//40.112.190.242/%s", vol.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+		//40.112.190.242
+		azureFilePath := fmt.Sprintf("//40.65.190.119/%s", vol.AzureFile.ShareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
 		err = mounter.Mount(azureFilePath, mountFolder, "cifs", options)
 		// err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
 		if err == nil {
@@ -132,7 +133,7 @@ func (v *VSync) MountToTempFolder(storageID, storageSecret, shareName string) (s
 	if err == nil {
 		// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 		options = append(options, "port=444")
-		azureFilePath := fmt.Sprintf("//40.112.190.242/%s", shareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+		azureFilePath := fmt.Sprintf("//40.65.190.119/%s", shareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
 		err = mounter.Mount(azureFilePath, tempFolder, "cifs", options)
 		return tempFolder, err
 	}
