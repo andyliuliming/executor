@@ -9,5 +9,5 @@ type Interface interface {
 	// Mount mounts source to target as fstype with given options.
 	Mount(source string, target string, fstype string, options []string) error
 	// Unmount unmounts given target.
-	Unmount(target string) error
+	Umount(target string) error
 }

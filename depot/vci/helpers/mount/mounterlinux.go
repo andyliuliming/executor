@@ -41,11 +41,11 @@ func (mounter *MounterLinux) doMount(mountCmd string, source string, target stri
 	return err
 }
 
-func (mounter *MounterLinux) Unmount(target string) error {
+func (mounter *MounterLinux) Umount(target string) error {
 	command := exec.Command("umount", target)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("Unmount failed: %v\nUnmounting arguments: %s\nOutput: %s\n", err, target, string(output))
+		return fmt.Errorf("Umount failed: %v\nUmounting arguments: %s\nOutput: %s\n", err, target, string(output))
 	}
 	return nil
 }
