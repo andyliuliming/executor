@@ -151,6 +151,22 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 		cp -f /tmp/droplet %s/droplet
 		EOF
 	`,
+
+					// 	#!/bin/bash
+					// mkdir -p /tmp/lifecycle
+					// rsync -a /swaproot/tmp/lifecycle/ /tmp/lifecycle
+					// mkdir -p /etc/cf-system-certificates
+					// rsync -a /swaproot/etc/cf-system-certificates/ /etc/cf-system-certificates
+					// mkdir -p /etc/cf-instance-credentials
+					// rsync -a /swaproot/etc/cf-instance-credentials/ /etc/cf-instance-credentials
+					// rsync -a /swaproot/9e251aca-b8a4-4d61-8fa9-3f1ad5fcb497/ /home/vcap
+					// su vcap -c '
+					// echo "#####execute real run. /tmp/lifecycle/launcher app /root/boot.sh"
+					// /tmp/lifecycle/launcher /home/vcap/app /home/vcap/app/boot.sh ""
+					// echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
+					// cp -f /tmp/droplet %s/droplet
+					// '
+
 					GetSwapRoot(),
 					GetSwapRoot(),
 					spec.User,
