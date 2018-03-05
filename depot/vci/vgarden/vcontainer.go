@@ -76,7 +76,7 @@ func (container *VContainer) CurrentMemoryLimits() (garden.MemoryLimits, error) 
 
 func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.Process, error) {
 	handle := container.Handle()
-	if len(handle) != len("3fa79176-be9a-4496-bda2-cdaa06c32480") { // skip for the staging container for now.
+	if len(handle) == len("3fa79176-be9a-4496-bda2-cdaa06c32480") { // skip for the staging container for now.
 		container.logger.Info("#########(andliu) skip for the stage container.")
 		return container.inner.Run(spec, io)
 	}
