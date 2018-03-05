@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.cloudfoundry.org/archiver/extractor"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
@@ -347,6 +348,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 			"dest": mountedRootFolder})
 		return err
 	}
+
 	f, err := os.Open(filepath.Join(mountedRootFolder, "post_task.sh"))
 	defer f.Close()
 	if err != nil {
@@ -362,11 +364,13 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	_, err = f.Seek(0, 2)
 	if err != nil {
 		c.logger.Info("#######(andliu) seek file string failed.", lager.Data{"err": err.Error()})
+		time.Sleep(3 * time.Minute)
 		return err
 	}
 	_, err = f.WriteString(postCopyTask)
 	if err != nil {
 		c.logger.Info("#######(andliu) write string failed.", lager.Data{"err": err.Error()})
+		time.Sleep(3 * time.Minute)
 		return err
 	}
 	mounter.Unmount(mountedRootFolder)
