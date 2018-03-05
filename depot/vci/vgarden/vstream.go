@@ -316,6 +316,10 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// extract the tar to the target model.To
 	// TODO create one share folder for /tmp
 	// 1. get the container configs.
+	if len(handle) == len("3fa79176-be9a-4496-bda2-cdaa06c32480") {
+		c.logger.Info("##########(andliu) skip stream in for the stage container.")
+		return nil
+	}
 	c.logger.Info("#########(andliu) VStream StreamIn starts.", lager.Data{"handle": handle, "dest": destination})
 	var finaldestination string
 	if destination == "." {
