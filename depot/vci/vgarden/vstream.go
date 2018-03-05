@@ -349,7 +349,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 		return err
 	}
 
-	f, err := os.Open(filepath.Join(mountedRootFolder, "post_task.sh"))
+	f, err := os.OpenFile(filepath.Join(mountedRootFolder, "post_task.sh"), os.O_APPEND|os.O_WRONLY, 0777)
 	defer f.Close()
 	if err != nil {
 		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
@@ -361,12 +361,12 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// f.WriteString("#!/bin/bash\n")
 	postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
 	c.logger.Info("########(andliu) postCopyTask.", lager.Data{"postCopyTask": postCopyTask})
-	_, err = f.Seek(0, 2)
-	if err != nil {
-		c.logger.Info("#######(andliu) seek file string failed.", lager.Data{"err": err.Error()})
-		time.Sleep(3 * time.Minute)
-		return err
-	}
+	// _, err = f.Seek(0, 2)
+	// if err != nil {
+	// 	c.logger.Info("#######(andliu) seek file string failed.", lager.Data{"err": err.Error()})
+	// 	time.Sleep(3 * time.Minute)
+	// 	return err
+	// }
 	_, err = f.WriteString(postCopyTask)
 	if err != nil {
 		c.logger.Info("#######(andliu) write string failed.", lager.Data{"err": err.Error()})
