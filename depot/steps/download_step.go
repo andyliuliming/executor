@@ -94,6 +94,7 @@ func (step *downloadStep) perform() error {
 	}
 	// TODO can we assume this is the tar file?
 	vs := vgarden.NewVStream(step.logger)
+	step.logger.Info("########(andliu) download size.", lager.Data{"downloadedSize": downloadedSize})
 	err = vs.StreamIn(step.container.Handle(), step.model.To, downloadedFile)
 	// downloadedFile.
 	if err != nil {
