@@ -209,6 +209,12 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	su vcap -c '
 	echo "##### ls /swaproot -all"
 	ls /swaproot -all
+	echo "##### pwd"
+	pwd
+	echo "##### ls ."
+	ls . -all
+	echo "##### ls ../ -all"
+	ls ../ -all
 	echo "##### cat vcap_task.sh"
 	cat /swaproot/vcap_task.sh
 	echo "##### run vcap_task.sh"

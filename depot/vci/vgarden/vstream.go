@@ -378,7 +378,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// }
 	_, err = vcapScriptFile.WriteString(postExtractTask)
 	if err != nil {
-		c.logger.Info("#######(andliu) write string failed.", lager.Data{"err": err.Error()})
+		c.logger.Info("#######(andliu) write string failed 2.", lager.Data{"err": err.Error()})
 		time.Sleep(3 * time.Minute)
 		return err
 	}
