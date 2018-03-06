@@ -354,8 +354,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 			"fileToExtractName": fileToExtractName})
 		return err
 	}
-
-	f, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_APPEND|os.O_WRONLY, 0777)
+	f, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
 	defer f.Close()
 	if err != nil {
 		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
