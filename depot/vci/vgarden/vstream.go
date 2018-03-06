@@ -368,7 +368,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// tar $exclude -C /home/vcap -xzf /tmp/droplet
 	// extract the file to the target place.
 	// postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
-	postExtractTask := fmt.Sprintf("tar -C %s -xzf %s\n", destination, filepath.Join(GetSwapRoot(), fileToExtractName))
+	postExtractTask := fmt.Sprintf("tar -C %s -xf %s\n", destination, filepath.Join(GetSwapRoot(), fileToExtractName))
 	c.logger.Info("########(andliu) postExtractTask.", lager.Data{"postExtractTask": postExtractTask})
 	// _, err = f.Seek(0, 2)
 	// if err != nil {

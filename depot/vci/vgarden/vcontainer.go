@@ -85,7 +85,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	}
 	if strings.Contains(spec.Path, "healthcheck") || strings.Contains(spec.Path, "sshd") {
 		// skip health check and the sshd.
-		container.logger.Info("#########(andliu) skip for the health check and the sshd.")
+		// container.logger.Info("#########(andliu) skip for the health check and the sshd.")
 		return container.inner.Run(spec, io)
 	}
 
