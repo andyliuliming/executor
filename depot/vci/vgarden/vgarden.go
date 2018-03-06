@@ -1,6 +1,5 @@
 package vgarden // import "code.cloudfoundry.org/executor/depot/vci/vgarden"
 import (
-	"fmt"
 	"strings"
 
 	"code.cloudfoundry.org/executor/model"
@@ -70,19 +69,17 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		containerProperties.Command = append(containerProperties.Command, "-c")
 
 		var prepareScript = `
-		echo "#####show root_task.sh content:"
-		cat /swaproot/root_task.sh
-		echo "#####executing root_task.sh"
-		/swaproot/root_task.sh
-		echo "#####need to run as vcap now."
-		su vcap -c '
-		/swaproot/vcap_task.sh
-		echo "#####execute real run. %s"
-		%s
-		echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
-		'
-	`
-		prepareScript = fmt.Sprintf(prepareScript, GetSwapRoot())
+	echo "#####show root_task.sh content:"
+	cat /swaproot/root_task.sh
+	echo "#####executing root_task.sh"
+	/swaproot/root_task.sh
+	echo "#####need to run as vcap now."
+	su vcap -c '
+	/swaproot/vcap_task.sh
+	echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
+	'
+`
+		// prepareScript = fmt.Sprintf(prepareScript, GetSwapRoot())
 		containerProperties.Command = append(containerProperties.Command, prepareScript)
 		if len(spec.NetIn) > 0 {
 			containerGroup.IPAddress = &aci.IPAddress{

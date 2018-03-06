@@ -129,23 +129,31 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				args = append(args, argToUse)
 			}
 			realCommand := fmt.Sprintf("%s %s", spec.Path, strings.Join(args, " "))
+			var vcapScriptFile *os.File
+			vscapScriptFilePath := filepath.Join(mountedRootFolder, GetVCapScript())
+			if _, err := os.Stat(vscapScriptFilePath); err != nil {
+				if os.IsNotExist(err) {
+					// 不存在
+					vcapScriptFile, err = os.OpenFile(vscapScriptFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
+					vcapScriptFile.WriteString("#!/bin/bash\n")
+					vcapScriptFile.Close()
+				}
+			}
+			vcapScriptFile, err = os.OpenFile(vscapScriptFilePath, os.O_APPEND|os.O_WRONLY, 0777)
 
-			f, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_APPEND|os.O_WRONLY, 0777)
 			if err != nil {
 				container.logger.Info("#######(andliu) open file failed.", lager.Data{"err": err.Error()})
 			}
-			_, err = f.WriteString(realCommand)
+			_, err = vcapScriptFile.WriteString(realCommand)
 			if err != nil {
 				container.logger.Info("#######(andliu) WriteString file failed.", lager.Data{"err": err.Error()})
 			}
-			err = f.Close()
+			err = vcapScriptFile.Close()
 			if err != nil {
 				container.logger.Info("#######(andliu) close file failed.", lager.Data{"err": err.Error()})
 			}
 			err = mounter.Umount(mountedRootFolder)
-			if err != nil {
-				container.logger.Info("#######(andliu) close file failed.", lager.Data{"err": err.Error()})
-			}
+
 			for idx, _ := range containerGroupGot.Containers {
 				containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables = []aci.EnvironmentVariable{}
 				for _, envStr := range spec.Env {
@@ -190,16 +198,16 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				// TODO copy the droplet when doing stage.
 				// cp - f/tmp/droplet %s/droplet
 				var runScript = fmt.Sprintf(`
-		echo "#####show root_task.sh content:"
-		cat /swaproot/root_task.sh
-		echo "#####executing root_task.sh"
-		/swaproot/root_task.sh
-		echo "#####need to run as vcap now."
-		su vcap -c '
-		/swaproot/vcap_task.sh
-		echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
-		'
-	`)
+	echo "#####show root_task.sh content:"
+	cat /swaproot/root_task.sh
+	echo "#####executing root_task.sh"
+	/swaproot/root_task.sh
+	echo "#####need to run as vcap now."
+	su vcap -c '
+	/swaproot/vcap_task.sh
+	echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
+	'
+`)
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})
 			}

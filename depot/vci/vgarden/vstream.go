@@ -353,9 +353,11 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 			"err":               err.Error(),
 			"fileToExtractName": fileToExtractName})
 		return err
+	} else {
+		c.logger.Info("#########(andliu) copy file succeeded.", lager.Data{"fileToExtractName": fileToExtractName})
 	}
-	f, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
-	defer f.Close()
+	vcapScriptFile, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
+	defer vcapScriptFile.Close()
 	if err != nil {
 		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
 			"err": err.Error(),
@@ -375,7 +377,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	// 	time.Sleep(3 * time.Minute)
 	// 	return err
 	// }
-	_, err = f.WriteString(postExtractTask)
+	_, err = vcapScriptFile.WriteString(postExtractTask)
 	if err != nil {
 		c.logger.Info("#######(andliu) write string failed.", lager.Data{"err": err.Error()})
 		time.Sleep(3 * time.Minute)
