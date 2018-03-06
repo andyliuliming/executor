@@ -203,8 +203,15 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	cat /swaproot/root_task.sh
 	echo "#####executing root_task.sh"
 	/swaproot/root_task.sh
+	echo "#####root ls /swaproot -all"
+	ls /swaproot -all
 	echo "#####need to run as vcap now."
 	su vcap -c '
+	echo "##### ls /swaproot -all"
+	ls /swaproot -all
+	echo "##### cat vcap_task.sh"
+	cat /swaproot/vcap_task.sh
+	echo "##### run vcap_task.sh"
 	/swaproot/vcap_task.sh
 	echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
 	'

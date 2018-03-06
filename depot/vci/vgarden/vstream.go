@@ -347,7 +347,6 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	err = fsync.WriteToFile(reader, filepath.Join(mountedRootFolder, fileToExtractName))
 	// c.logger.Info("##########(andliu) subfolder name is.", lager.Data{"subfolder": subfolder})
 	// err = fsync.CopyFolder(extractedFolder, filepath.Join(mountedRootFolder, subfolder))
-
 	if err != nil {
 		c.logger.Info("########(andliu) copy file failed.", lager.Data{
 			"err":               err.Error(),
@@ -359,7 +358,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	vcapScriptFile, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0777)
 	defer vcapScriptFile.Close()
 	if err != nil {
-		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
+		c.logger.Info("########(andliu) open vcap_task.sh failed.", lager.Data{
 			"err": err.Error(),
 			// "src":  extractedFolder,
 			"fileToExtractName": fileToExtractName})
