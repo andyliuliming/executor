@@ -110,7 +110,7 @@ func (c *VStream) MountContainerRoot(handle string) (string, error) {
 		"vers=3.0",
 		fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
 		fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
-		"dir_mode=0777,file_mode=0777,mfsymlinks,serverino",
+		"dir_mode=0777,file_mode=0777,serverino",
 	}
 	// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 	options = append(options, "port=444")
@@ -157,7 +157,7 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 		"vers=3.0",
 		fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
 		fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
-		"dir_mode=0777,file_mode=0777,mfsymlinks,serverino",
+		"dir_mode=0777,file_mode=0777,serverino",
 	}
 	// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 	options = append(options, "port=444")
@@ -261,7 +261,7 @@ func (c *VStream) PrepareVolumeMounts(handle string, bindMounts []garden.BindMou
 				"vers=3.0",
 				fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
 				fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
-				"dir_mode=0777,file_mode=0777,mfsymlinks,serverino",
+				"dir_mode=0777,file_mode=0777,serverino",
 			}
 			// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
 			options = append(options, "port=444")
