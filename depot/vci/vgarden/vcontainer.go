@@ -198,6 +198,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				// TODO copy the droplet when doing stage.
 				// cp - f/tmp/droplet %s/droplet
 				var runScript = fmt.Sprintf(`
+	echo "##### run"
 	echo "#####show root_task.sh content:"
 	cat /swaproot/root_task.sh
 	echo "#####executing root_task.sh"

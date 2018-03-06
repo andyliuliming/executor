@@ -94,7 +94,7 @@ func (step *downloadStep) perform() error {
 	}
 	// TODO can we assume this is the tar file?
 	vs := vgarden.NewVStream(step.logger)
-	step.logger.Info("########(andliu) download size.", lager.Data{"downloadedSize": downloadedSize})
+	// step.logger.Info("########(andliu) download size.", lager.Data{"downloadedSize": downloadedSize})
 	err = vs.StreamIn(step.container.Handle(), step.model.To, downloadedFile)
 	// downloadedFile.
 	if err != nil {
@@ -152,7 +152,7 @@ func (step *downloadStep) fetch() (io.ReadCloser, int64, error) {
 		step.logger.Error("fetch-failed", err)
 		return nil, 0, err
 	}
-	step.logger.Info("########(andliu) fetch result.", lager.Data{"model": step.model})
+	// step.logger.Info("########(andliu) fetch result.", lager.Data{"model": step.model})
 	step.logger.Info("fetch-complete", lager.Data{"size": downloadedSize})
 	return tarStream, downloadedSize, nil
 }

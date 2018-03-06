@@ -69,15 +69,11 @@ func (c *client) Create(spec garden.ContainerSpec) (garden.Container, error) {
 		containerProperties.Command = append(containerProperties.Command, "-c")
 
 		var prepareScript = `
+	echo "##### create"
 	echo "#####show root_task.sh content:"
 	cat /swaproot/root_task.sh
 	echo "#####executing root_task.sh"
 	/swaproot/root_task.sh
-	echo "#####need to run as vcap now."
-	su vcap -c '
-	/swaproot/vcap_task.sh
-	echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
-	'
 `
 		// prepareScript = fmt.Sprintf(prepareScript, GetSwapRoot())
 		containerProperties.Command = append(containerProperties.Command, prepareScript)
