@@ -209,6 +209,12 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 	su - vcap -c '
 	echo "##### ls /swaproot -all"
 	export HOME=/home/vcap/app
+	echo "##### echo $PORT"
+	echo $PORT
+	echo "##### echo $APP_ROOT"
+	echo $APP_ROOT
+	export PORT=8080
+	export APP_ROOT=/home/vcap/app
 	ls /swaproot -all
 	echo "##### pwd"
 	pwd
