@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/archiver/extractor"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
 	"code.cloudfoundry.org/executor/depot/vci/helpers/mount"
 	"code.cloudfoundry.org/executor/depot/vci/vstore"
@@ -321,18 +320,21 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 		return nil
 	}
 	c.logger.Info("#########(andliu) VStream StreamIn starts.", lager.Data{"handle": handle, "dest": destination})
-	var finaldestination string
-	if destination == "." {
-		// TODO: workaround, we guess . is the /home/vcap.
-		// will extract the droplet file to this folder.
-		finaldestination = "/home/vcap"
-	} else {
-		finaldestination = destination
-	}
+	// var finaldestination string
+	// if destination == "." {
+	// 	// TODO: workaround, we guess . is the /home/vcap.
+	// 	// will extract the droplet file to this folder.
+	// 	finaldestination = "/home/vcap"
+	// } else {
+	// 	finaldestination = destination
+	// }
 	// handle := step.container.Handle()
-	extractedFolder, err := ioutil.TempDir("/tmp", "folder_extracted_")
-	extra := extractor.NewTar()
-	err = extra.ExtractStream(extractedFolder, reader)
+	// 1. write the stream to the azure share
+	// 2. write a task line into the post task.sh
+
+	// extractedFolder, err := ioutil.TempDir("/tmp", "folder_extracted_")
+	// extra := extractor.NewTar()
+	// err = extra.ExtractStream(extractedFolder, reader)
 
 	mounter := mount.NewMounter()
 	mountedRootFolder, err := c.MountContainerRoot(handle)
@@ -342,14 +344,15 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	}
 	fsync := fsync.NewFSync(c.logger)
 	id, _ := uuid.NewV4()
-	subfolder := id.String()
-	c.logger.Info("##########(andliu) subfolder name is.", lager.Data{"subfolder": subfolder})
-	err = fsync.CopyFolder(extractedFolder, filepath.Join(mountedRootFolder, subfolder))
+	fileToExtractName := id.String()
+	err = fsync.WriteToFile(reader, filepath.Join(mountedRootFolder, fileToExtractName))
+	// c.logger.Info("##########(andliu) subfolder name is.", lager.Data{"subfolder": subfolder})
+	// err = fsync.CopyFolder(extractedFolder, filepath.Join(mountedRootFolder, subfolder))
+
 	if err != nil {
-		c.logger.Info("########(andliu) copy failed.", lager.Data{
-			"err":  err.Error(),
-			"src":  extractedFolder,
-			"dest": mountedRootFolder})
+		c.logger.Info("########(andliu) copy file failed.", lager.Data{
+			"err":               err.Error(),
+			"fileToExtractName": fileToExtractName})
 		return err
 	}
 
@@ -357,21 +360,24 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 	defer f.Close()
 	if err != nil {
 		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
-			"err":  err.Error(),
-			"src":  extractedFolder,
-			"dest": mountedRootFolder})
+			"err": err.Error(),
+			// "src":  extractedFolder,
+			"fileToExtractName": fileToExtractName})
 		return err
 	}
 	// f.WriteString("#!/bin/bash\n")
-	postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
-	c.logger.Info("########(andliu) postCopyTask.", lager.Data{"postCopyTask": postCopyTask})
+	// tar $exclude -C /home/vcap -xzf /tmp/droplet
+	// extract the file to the target place.
+	// postCopyTask := fmt.Sprintf("rsync -a %s/ %s\n", filepath.Join(GetSwapRoot(), subfolder), finaldestination)
+	postExtractTask := fmt.Sprintf("tar -C %s -xzf %s\n", destination, filepath.Join(GetSwapRoot(), fileToExtractName))
+	c.logger.Info("########(andliu) postExtractTask.", lager.Data{"postExtractTask": postExtractTask})
 	// _, err = f.Seek(0, 2)
 	// if err != nil {
 	// 	c.logger.Info("#######(andliu) seek file string failed.", lager.Data{"err": err.Error()})
 	// 	time.Sleep(3 * time.Minute)
 	// 	return err
 	// }
-	_, err = f.WriteString(postCopyTask)
+	_, err = f.WriteString(postExtractTask)
 	if err != nil {
 		c.logger.Info("#######(andliu) write string failed.", lager.Data{"err": err.Error()})
 		time.Sleep(3 * time.Minute)

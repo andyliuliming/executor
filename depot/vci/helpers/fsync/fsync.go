@@ -1,6 +1,7 @@
 package fsync // import "code.cloudfoundry.org/executor/depot/vci/helpers/fsync"
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 type FSync interface {
 	CopyFolder(src, dest string) error
+	WriteToFile(reader io.Reader, dest string) error
 }
 
 type fSync struct {
@@ -25,6 +27,15 @@ func NewFSync(logger lager.Logger) FSync {
 	return &fSync{
 		logger: logger,
 	}
+}
+
+func (f *fSync) WriteToFile(reader io.Reader, dest string) error {
+	file, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(file, reader)
+	return err
 }
 
 func (f *fSync) CopyFolder(src, dest string) error {
