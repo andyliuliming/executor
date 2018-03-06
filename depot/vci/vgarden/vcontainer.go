@@ -3,9 +3,12 @@ package vgarden
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/executor/depot/vci/helpers/mount"
 	"code.cloudfoundry.org/executor/model"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -101,7 +104,48 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				containerGroupGot.ContainerGroupProperties.Volumes[idx].AzureFile.StorageAccountKey =
 					executorEnv.Config.ContainerProviderConfig.StorageSecret
 			}
+			vs := NewVStream(container.logger)
+			mountedRootFolder, err := vs.MountContainerRoot(handle)
+			options := []string{
+				"vers=3.0",
+				fmt.Sprintf("username=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageId),
+				fmt.Sprintf("password=%s", model.GetExecutorEnvInstance().Config.ContainerProviderConfig.StorageSecret),
+				"dir_mode=0777,file_mode=0777,mfsymlinks,serverino",
+			}
+			// TODO because 445 port is blocked in microsoft, so we use the proxy to do it...
+			options = append(options, "port=444")
 
+			shareName := vs.GetContainerSwapRootShareFolder(handle)
+			azureFilePath := fmt.Sprintf("//40.65.190.119/%s", shareName) //fmt.Sprintf("//%s.file.core.windows.net/%s", storageID, shareName)
+			mounter := mount.NewMounter()
+
+			err = mounter.Mount(azureFilePath, mountedRootFolder, "cifs", options)
+			args := []string{}
+			for _, arg := range spec.Args {
+				argToUse := arg
+				if arg == "" {
+					argToUse = "\"\""
+				}
+				args = append(args, argToUse)
+			}
+			realCommand := fmt.Sprintf("%s %s", spec.Path, strings.Join(args, " "))
+
+			f, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_APPEND|os.O_WRONLY, 0777)
+			if err != nil {
+				container.logger.Info("#######(andliu) open file failed.", lager.Data{"err": err.Error()})
+			}
+			_, err = f.WriteString(realCommand)
+			if err != nil {
+				container.logger.Info("#######(andliu) WriteString file failed.", lager.Data{"err": err.Error()})
+			}
+			err = f.Close()
+			if err != nil {
+				container.logger.Info("#######(andliu) close file failed.", lager.Data{"err": err.Error()})
+			}
+			err = mounter.Umount(mountedRootFolder)
+			if err != nil {
+				container.logger.Info("#######(andliu) close file failed.", lager.Data{"err": err.Error()})
+			}
 			for idx, _ := range containerGroupGot.Containers {
 				containerGroupGot.Containers[idx].ContainerProperties.EnvironmentVariables = []aci.EnvironmentVariable{}
 				for _, envStr := range spec.Env {
@@ -119,14 +163,7 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, "-c")
 
 				// TODO judge whether it's stage.
-				args := []string{}
-				for _, arg := range spec.Args {
-					argToUse := arg
-					if arg == "" {
-						argToUse = "\"\""
-					}
-					args = append(args, argToUse)
-				}
+
 				// 这个是跑在container里面的脚本。
 				// 				const runnerScript = `
 				// 	set -e
@@ -149,59 +186,26 @@ func (container *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (
 				// 	fi
 				// 	exec /tmp/lifecycle/launcher /home/vcap/app "$command" ''
 				// `
-				realCommand := fmt.Sprintf("%s %s", spec.Path, strings.Join(args, " "))
+
+				// TODO copy the droplet when doing stage.
+				// cp - f/tmp/droplet %s/droplet
 				var runScript = fmt.Sprintf(`
-		echo "#####real execute.whoami"
-		whoami
-		echo "#####pwd"
-		pwd
-		echo "#####ls /swaproot"
-		ls %s
-		echo "#####ls /tmp"
-		ls /tmp
-		echo "#####ls /home/vcap"
-		ls /home/vcap
-		echo "#####show post_task.sh content:"
-		cat %s/post_task.sh
-		echo "need to run as %s"
-		echo "#####executing post_task.sh"
-		sudo -u vcap bash << EOF
-		%s/post_task.sh
-		echo "#####execute real run. %s"
-		%s
+		echo "#####show root_task.sh content:"
+		cat /swaproot/root_task.sh
+		echo "#####executing root_task.sh"
+		/swaproot/root_task.sh
+		echo "#####need to run as vcap now."
+		su vcap -c '
+		/swaproot/vcap_task.sh
 		echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
-		cp -f /tmp/droplet %s/droplet
-		EOF
-	`,
-
-					// 	#!/bin/bash
-					// mkdir -p /tmp/lifecycle
-					// rsync -a /swaproot/tmp/lifecycle/ /tmp/lifecycle
-					// mkdir -p /etc/cf-system-certificates
-					// rsync -a /swaproot/etc/cf-system-certificates/ /etc/cf-system-certificates
-					// mkdir -p /etc/cf-instance-credentials
-					// rsync -a /swaproot/etc/cf-instance-credentials/ /etc/cf-instance-credentials
-					// rsync -a /swaproot/9e251aca-b8a4-4d61-8fa9-3f1ad5fcb497/ /home/vcap
-					// su vcap -c '
-					// echo "#####execute real run. /tmp/lifecycle/launcher app /root/boot.sh"
-					// /tmp/lifecycle/launcher /home/vcap/app /home/vcap/app/boot.sh ""
-					// echo "post actions.(TODO,copy the /tmp/droplet to the share folder.)"
-					// cp -f /tmp/droplet %s/droplet
-					// '
-
-					GetSwapRoot(),
-					GetSwapRoot(),
-					spec.User,
-					GetSwapRoot(),
-					realCommand,
-					realCommand,
-					GetSwapRoot())
+		'
+	`)
 				containerGroupGot.Containers[idx].Command = append(containerGroupGot.Containers[idx].Command, runScript)
 				container.logger.Info("###########(andliu) final command is.", lager.Data{"command": containerGroupGot.Containers[idx].Command})
 			}
 			// prepare the commands.
 			container.logger.Info("#########(andliu) update container group got.", lager.Data{"containerGroupGot": *containerGroupGot})
-			_, err := aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
+			_, err = aciClient.UpdateContainerGroup(executorEnv.ResourceGroup, container.inner.Handle(), *containerGroupGot)
 			retry := 0
 			for err != nil && retry < 10 {
 				container.logger.Info("#########(andliu) update container group failed.", lager.Data{"err": err.Error()})

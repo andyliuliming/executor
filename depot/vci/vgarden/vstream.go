@@ -172,7 +172,7 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 		return nil, nil, err
 	}
 
-	f, err := os.Create(filepath.Join(mountedRootFolder, "post_task.sh"))
+	f, err := os.Create(filepath.Join(mountedRootFolder, GetRootScript()))
 	f.WriteString("#!/bin/bash\n")
 
 	for _, bindMount := range bindMounts {
@@ -193,7 +193,6 @@ func (c *VStream) PrepareSwapVolumeMount(handle string, bindMounts []garden.Bind
 		c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
 		f.WriteString(postCopyTask)
 		// c.logger.Info("########(andliu) postCopyTaskLine.", lager.Data{"line": postCopyTask})
-
 	}
 	f.Close()
 	err = mounter.Umount(mountedRootFolder)
@@ -356,7 +355,7 @@ func (c *VStream) StreamIn(handle, destination string, reader io.ReadCloser) err
 		return err
 	}
 
-	f, err := os.OpenFile(filepath.Join(mountedRootFolder, "post_task.sh"), os.O_APPEND|os.O_WRONLY, 0777)
+	f, err := os.OpenFile(filepath.Join(mountedRootFolder, GetVCapScript()), os.O_APPEND|os.O_WRONLY, 0777)
 	defer f.Close()
 	if err != nil {
 		c.logger.Info("########(andliu) open post task.sh failed.", lager.Data{
