@@ -157,7 +157,6 @@ func tagsMatch(needles, haystack executor.Tags) bool {
 			return false
 		}
 	}
-
 	return true
 }
 

@@ -127,9 +127,9 @@ func (cs *containerStore) Reserve(logger lager.Logger, req *executor.AllocationR
 	logger = logger.Session("containerstore-reserve", lager.Data{"guid": req.Guid})
 	logger.Debug("starting")
 	defer logger.Debug("complete")
-
 	container := executor.NewReservedContainerFromAllocationRequest(req, cs.clock.Now().UnixNano())
 
+	// logger.Info("############(andliu) reserve: ", lager.Data{"req": *req, "container": container})
 	err := cs.containers.Add(
 		newStoreNode(&cs.containerConfig,
 			cs.useDeclarativeHealthCheck,
@@ -160,6 +160,7 @@ func (cs *containerStore) Initialize(logger lager.Logger, req *executor.RunReque
 	logger.Debug("starting")
 	defer logger.Debug("complete")
 
+	// logger.Info("############(andliu) initialize: ", lager.Data{"req": *req})
 	node, err := cs.containers.Get(req.Guid)
 	if err != nil {
 		logger.Error("failed-to-get-container", err)
@@ -188,6 +189,7 @@ func (cs *containerStore) Create(logger lager.Logger, guid string) (executor.Con
 		return executor.Container{}, err
 	}
 
+	// logger.Info("############(andliu) containerstoreCreate: ", lager.Data{"info": node.info, "gardenContainer": node.gardenContainer})
 	err = node.Create(logger)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
