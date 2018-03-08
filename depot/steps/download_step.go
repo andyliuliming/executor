@@ -93,20 +93,21 @@ func (step *downloadStep) perform() error {
 		return NewEmittableError(err, errString)
 	}
 	// TODO can we assume this is the tar file?
-	vs := vgarden.NewVStream(step.logger)
-	// step.logger.Info("########(andliu) download size.", lager.Data{"downloadedSize": downloadedSize})
-	err = vs.StreamIn(step.container.Handle(), step.model.To, downloadedFile)
-	// downloadedFile.
-	if err != nil {
-		step.logger.Info("###########(andliu) vstreamin failed.", lager.Data{"err": err.Error()})
-		return err
-	}
+	if false { // for debug go router.
+		vs := vgarden.NewVStream(step.logger)
+		// step.logger.Info("########(andliu) download size.", lager.Data{"downloadedSize": downloadedSize})
+		err = vs.StreamIn(step.container.Handle(), step.model.To, downloadedFile)
+		// downloadedFile.
+		if err != nil {
+			step.logger.Info("###########(andliu) vstreamin failed.", lager.Data{"err": err.Error()})
+			return err
+		}
 
-	newOffset, err := downloadedFile.(io.Seeker).Seek(0, io.SeekStart)
-
-	if err != nil {
-		step.logger.Info("###########(andliu) seek failed.", lager.Data{"err": err, "newOffset": newOffset})
-		return err
+		newOffset, err := downloadedFile.(io.Seeker).Seek(0, io.SeekStart)
+		if err != nil {
+			step.logger.Info("###########(andliu) seek failed.", lager.Data{"err": err, "newOffset": newOffset})
+			return err
+		}
 	}
 
 	err = step.streamIn(step.model.To, downloadedFile)
