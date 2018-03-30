@@ -12,6 +12,8 @@ import (
 	"code.cloudfoundry.org/executor"
 	"code.cloudfoundry.org/executor/depot/event"
 	"code.cloudfoundry.org/executor/depot/transformer"
+	"code.cloudfoundry.org/executor/depot/vcontainer"
+	"code.cloudfoundry.org/executor/model"
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/garden/server"
 	"code.cloudfoundry.org/lager"
@@ -169,6 +171,7 @@ func (n *storeNode) Create(logger lager.Logger) error {
 
 	n.bindMounts = mounts.GardenBindMounts
 
+	// TODO handle this path.
 	if n.hostTrustedCertificatesPath != "" && info.TrustedSystemCertificatesPath != "" {
 		mount := garden.BindMount{
 			SrcPath: n.hostTrustedCertificatesPath,
@@ -180,7 +183,7 @@ func (n *storeNode) Create(logger lager.Logger) error {
 
 		info.Env = append(info.Env, executor.EnvironmentVariable{Name: "CF_SYSTEM_CERT_PATH", Value: info.TrustedSystemCertificatesPath})
 	}
-
+	// TODO handle this path.
 	volumeMounts, err := n.mountVolumes(logger, info)
 	if err != nil {
 		logger.Error("failed-to-mount-volume", err)
@@ -188,13 +191,14 @@ func (n *storeNode) Create(logger lager.Logger) error {
 		return err
 	}
 	n.bindMounts = append(n.bindMounts, volumeMounts...)
-
+	// TODO handle this path.
 	proxyMounts, err := n.proxyManager.BindMounts(logger, n.info)
 	if err != nil {
 		return err
 	}
 	n.bindMounts = append(n.bindMounts, proxyMounts...)
 
+	// 1. mount one azure share for creating the directories
 	credMounts, envs, err := n.credManager.CreateCredDir(logger, n.info)
 	if err != nil {
 		n.complete(logger, true, CredDirFailed)
@@ -213,6 +217,7 @@ func (n *storeNode) Create(logger lager.Logger) error {
 	}
 
 	fmt.Fprintf(logStreamer.Stdout(), "Cell %s creating container for instance %s\n", n.cellID, n.Info().Guid)
+
 	gardenContainer, err := n.createGardenContainer(logger, &info)
 	if err != nil {
 		logger.Error("failed-to-create-container", err)
@@ -289,6 +294,7 @@ func (n *storeNode) createGardenContainer(logger lager.Logger, info *executor.Co
 		})
 	}
 
+	logger.Info("##########(andliu) before allocate the ports.", lager.Data{"ports": info.Ports})
 	netInRules := make([]garden.NetIn, len(info.Ports))
 	for i, portMapping := range info.Ports {
 		netInRules[i] = garden.NetIn{
@@ -297,11 +303,12 @@ func (n *storeNode) createGardenContainer(logger lager.Logger, info *executor.Co
 		}
 	}
 
+	// todo: upload the image to the private docker registry.
 	containerSpec := garden.ContainerSpec{
 		Handle:     info.Guid,
 		Privileged: info.Privileged,
 		Image: garden.ImageRef{
-			URI:      info.RootFSPath,
+			URI:      info.RootFSPath, //"rootfs": "/var/vcap/packages/cflinuxfs2/rootfs.tar"
 			Username: info.ImageUsername,
 			Password: info.ImagePassword,
 		},
@@ -328,6 +335,11 @@ func (n *storeNode) createGardenContainer(logger lager.Logger, info *executor.Co
 		NetOut:     netOutRules,
 	}
 
+	// logger.Info("############(andliu) containerSpec:", lager.Data{"containerSpec": containerSpec})
+	// mock create container
+	// 1. mount azure file to some place
+	// 2. copy the mount files to the shares.
+	// 3. use the azure api to do the mounts
 	gardenContainer, err := createContainer(logger, containerSpec, n.gardenClient, n.metronClient)
 	if err != nil {
 		return nil, err
@@ -339,9 +351,21 @@ func (n *storeNode) createGardenContainer(logger lager.Logger, info *executor.Co
 		return nil, err
 	}
 
+	// proxyPortMapping is always nil.
 	info.Ports = portMappingFromContainerInfo(containerInfo, proxyPortMapping)
-	info.ExternalIP = containerInfo.ExternalIP
-	info.InternalIP = containerInfo.ContainerIP
+
+	// logger.Info("#########(andliu) mapped ports:", lager.Data{"ports": info.Ports})
+	// modify the hostport to the container ports : )
+	// for idx, _ := range info.Ports {
+	// 	port := &info.Ports[idx]
+	// 	port.HostPort = port.ContainerPort
+	// }
+
+	//[{"container_port":8080,"host_port":61000},{"container_port":2222,"host_port":61001}]
+	// logger.Info("#########(andliu) changed ports", lager.Data{"ports": info.Ports})
+	// logger.Info("#########(andliu) ips", lager.Data{"external": externalIP, "container": containerIP})
+	info.ExternalIP = containerInfo.ExternalIP  //"52.148.85.1"
+	info.InternalIP = containerInfo.ContainerIP //"52.148.85.1"
 
 	err = info.TransistionToCreate()
 	if err != nil {
@@ -419,8 +443,10 @@ func (n *storeNode) Run(logger lager.Logger) error {
 		BindMounts:    n.bindMounts,
 		ProxyTLSPorts: proxyTLSPorts,
 	}
+	// logger.Info("#################(andliu) gardenContainer: ", lager.Data{"gardenContainer": n.gardenContainer})
 	runner, err := n.transformer.StepsRunner(logger, n.info, n.gardenContainer, logStreamer, cfg)
 	if err != nil {
+		logger.Info("###########(andliu) steps runner failed.", lager.Data{"err": err.Error(), "gardenContainer": n.gardenContainer})
 		return err
 	}
 
@@ -646,7 +672,10 @@ func (n *storeNode) removeProxyConfigDir(logger lager.Logger, info executor.Cont
 func createContainer(logger lager.Logger, spec garden.ContainerSpec, client garden.Client, metronClient loggingclient.IngressClient) (garden.Container, error) {
 	logger.Info("creating-container-in-garden")
 	startTime := time.Now()
-	container, err := client.Create(spec)
+	inner, err := client.Create(spec)
+
+	container := vcontainer.NewVContainerWithAdapter(inner, logger, model.GetExecutorEnvInstance().VContainerClientConfig)
+
 	createDuration := time.Now().Sub(startTime)
 	if err != nil {
 		logger.Error("failed-to-create-container-in-garden", err)
