@@ -144,7 +144,12 @@ func (c *VContainer) StreamIn(spec garden.StreamInSpec) error {
 func (c *VContainer) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error) {
 	c.logger.Info("vcontainer-stream-out")
 	ctx := c.buildContext()
-	client, err := c.vcontainerClient.StreamOut(ctx, &vcontainermodels.StreamOutSpec{})
+
+	client, err := c.vcontainerClient.StreamOut(ctx, &vcontainermodels.StreamOutSpec{
+		Path: spec.Path,
+		User: spec.User,
+	})
+
 	if err != nil {
 		c.logger.Error("vcontainer-stream-out", err)
 	} else {
