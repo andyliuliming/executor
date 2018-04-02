@@ -8,7 +8,7 @@ import (
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
-	google_protobuf3 "github.com/gogo/protobuf/types"
+	google_protobuf "github.com/gogo/protobuf/types"
 	"github.com/virtualcloudfoundry/vcontainercommon"
 	"github.com/virtualcloudfoundry/vcontainercommon/vcontainermodels"
 	context "golang.org/x/net/context"
@@ -46,16 +46,18 @@ func (c *VContainer) Stop(kill bool) error {
 	_, err := c.vcontainerClient.Stop(ctx, &vcontainermodels.StopMessage{
 		Kill: kill,
 	})
+
 	if err != nil {
 		c.logger.Error("vcontainer-stop", err, lager.Data{"kill": kill})
 	}
+
 	return c.inner.Stop(kill)
 }
 
 func (c *VContainer) Info() (garden.ContainerInfo, error) {
 	c.logger.Info("vcontainer-info")
 	ctx := c.buildContext()
-	_, err := c.vcontainerClient.Info(ctx, &google_protobuf3.Empty{})
+	_, err := c.vcontainerClient.Info(ctx, &google_protobuf.Empty{})
 	if err != nil {
 		c.logger.Error("vcontainer-info", err)
 	}
@@ -81,15 +83,18 @@ func (c *VContainer) StreamIn(spec garden.StreamInSpec) error {
 				Path: spec.Path,
 			},
 		}
+
 		err := client.Send(message)
 		if err != nil {
 			c.logger.Error("vcontainer-stream-in-spec-send-path-failed", err)
 		}
+
 		message = &vcontainermodels.StreamInSpec{
 			Part: &vcontainermodels.StreamInSpec_User{
 				User: spec.User,
 			},
 		}
+
 		err = client.Send(message)
 		if err != nil {
 			c.logger.Error("vcontainer-stream-in-spec-send-user-failed", err)
@@ -227,7 +232,7 @@ func (c *VContainer) BulkNetOut(netOutRules []garden.NetOutRule) error {
 func (c *VContainer) Metrics() (garden.Metrics, error) {
 	c.logger.Info("vcontainer-metrics")
 	ctx := c.buildContext()
-	_, err := c.vcontainerClient.Metrics(ctx, &google_protobuf3.Empty{})
+	_, err := c.vcontainerClient.Metrics(ctx, &google_protobuf.Empty{})
 	if err != nil {
 		c.logger.Error("metrics", err)
 	}
@@ -236,7 +241,7 @@ func (c *VContainer) Metrics() (garden.Metrics, error) {
 
 func (c *VContainer) SetGraceTime(graceTime time.Duration) error {
 	c.logger.Info("vcontainer-set-grace-time")
-	protoDuration := &google_protobuf3.Duration{}
+	protoDuration := &google_protobuf.Duration{}
 	protoDuration.Seconds = int64(graceTime) / 1e9
 	protoDuration.Nanos = int32(int64(graceTime) % 1e9)
 	ctx := c.buildContext()
@@ -250,7 +255,7 @@ func (c *VContainer) SetGraceTime(graceTime time.Duration) error {
 func (c *VContainer) Properties() (garden.Properties, error) {
 	c.logger.Info("vcontainer-properties")
 	ctx := c.buildContext()
-	_, err := c.vcontainerClient.Properties(ctx, &google_protobuf3.Empty{})
+	_, err := c.vcontainerClient.Properties(ctx, &google_protobuf.Empty{})
 	if err != nil {
 		c.logger.Error("properties", err)
 	}
@@ -260,7 +265,7 @@ func (c *VContainer) Properties() (garden.Properties, error) {
 func (c *VContainer) Property(name string) (string, error) {
 	c.logger.Info("vcontainer-property")
 	ctx := c.buildContext()
-	_, err := c.vcontainerClient.Property(ctx, &google_protobuf3.StringValue{
+	_, err := c.vcontainerClient.Property(ctx, &google_protobuf.StringValue{
 		Value: name,
 	})
 	if err != nil {
@@ -285,7 +290,7 @@ func (c *VContainer) SetProperty(name string, value string) error {
 func (c *VContainer) RemoveProperty(name string) error {
 	c.logger.Info("vcontainer-remove-property")
 	ctx := c.buildContext()
-	_, err := c.vcontainerClient.RemoveProperty(ctx, &google_protobuf3.StringValue{
+	_, err := c.vcontainerClient.RemoveProperty(ctx, &google_protobuf.StringValue{
 		Value: name,
 	})
 	if err != nil {

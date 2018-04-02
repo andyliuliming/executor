@@ -2,7 +2,7 @@ package vcontainer
 
 import (
 	"code.cloudfoundry.org/garden"
-	google_protobuf3 "github.com/gogo/protobuf/types"
+	google_protobuf "github.com/gogo/protobuf/types"
 	"github.com/virtualcloudfoundry/vcontainercommon/vcontainermodels"
 )
 
@@ -27,7 +27,7 @@ func ConvertProcessSpec(spec garden.ProcessSpec) (*vcontainermodels.ProcessSpec,
 }
 
 func ConvertContainerSpec(spec garden.ContainerSpec) (*vcontainermodels.ContainerSpec, error) {
-	protoDuration := &google_protobuf3.Duration{}
+	protoDuration := &google_protobuf.Duration{}
 	protoDuration.Seconds = int64(spec.GraceTime) / 1e9
 	protoDuration.Nanos = int32(int64(spec.GraceTime) % 1e9)
 

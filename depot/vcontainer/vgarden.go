@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/garden"
 	GardenClient "code.cloudfoundry.org/garden/client"
 	"code.cloudfoundry.org/lager"
-	google_protobuf3 "github.com/gogo/protobuf/types"
+	google_protobuf "github.com/gogo/protobuf/types"
 	vcmodels "github.com/virtualcloudfoundry/vcontainercommon/vcontainermodels"
 )
 
@@ -35,7 +35,7 @@ func NewVGardenWithAdapter(gc GardenClient.Client, logger lager.Logger, config v
 
 func (c *vgarden) Ping() error {
 	c.logger.Info("vgarden-ping")
-	_, err := c.vgardenClient.Ping(context.Background(), &google_protobuf3.Empty{})
+	_, err := c.vgardenClient.Ping(context.Background(), &google_protobuf.Empty{})
 	if err != nil {
 		c.logger.Error("ping", err)
 	}
@@ -44,7 +44,7 @@ func (c *vgarden) Ping() error {
 
 func (c *vgarden) Capacity() (garden.Capacity, error) {
 	c.logger.Info("vgarden-capacity")
-	_, err := c.vgardenClient.Capacity(context.Background(), &google_protobuf3.Empty{})
+	_, err := c.vgardenClient.Capacity(context.Background(), &google_protobuf.Empty{})
 	if err != nil {
 		c.logger.Error("ping", err)
 	}
@@ -77,7 +77,7 @@ func (c *vgarden) Containers(properties garden.Properties) ([]garden.Container, 
 func (c *vgarden) Destroy(handle string) error {
 	c.logger.Info("vgarden-destroy", lager.Data{"handle": handle})
 
-	_, err := c.vgardenClient.Destroy(context.Background(), &google_protobuf3.StringValue{
+	_, err := c.vgardenClient.Destroy(context.Background(), &google_protobuf.StringValue{
 		Value: handle,
 	})
 	if err != nil {
@@ -110,7 +110,7 @@ func (c *vgarden) BulkMetrics(handles []string) (map[string]garden.ContainerMetr
 
 func (c *vgarden) Lookup(handle string) (garden.Container, error) {
 	c.logger.Info("vgarden-lookup")
-	_, err := c.vgardenClient.Lookup(context.Background(), &google_protobuf3.StringValue{
+	_, err := c.vgardenClient.Lookup(context.Background(), &google_protobuf.StringValue{
 		Value: handle,
 	})
 	if err != nil {
