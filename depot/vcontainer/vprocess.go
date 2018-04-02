@@ -6,12 +6,14 @@ import (
 )
 
 type VProcess struct {
+	id     string
 	inner  garden.Process
 	logger lager.Logger
 }
 
-func NewVProcess(logger lager.Logger, inner garden.Process) *VProcess {
+func NewVProcess(logger lager.Logger, id string, inner garden.Process) *VProcess {
 	return &VProcess{
+		id:     id,
 		inner:  inner,
 		logger: logger,
 	}
