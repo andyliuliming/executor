@@ -19,17 +19,23 @@ type VContainer struct {
 	handle           string
 	inner            garden.Container
 	vcontainerClient vcontainermodels.VContainerClient
+	vprocessClient   vcontainermodels.VProcessClient
 	logger           lager.Logger
 }
 
 func NewVContainerWithAdapter(inner garden.Container, logger lager.Logger, config vcontainermodels.VContainerClientConfig) garden.Container {
 	vcontainerClient, err := NewVContainerClient(logger, config)
 	if err != nil {
-		logger.Error("new-vcontainer-with-adapter", err)
+		logger.Error("new-vcontainer-client-failed", err)
+	}
+	vprocessClient, err := NewVProcessClient(logger, config)
+	if err != nil {
+		logger.Error("new-vprocess-client-failed", err)
 	}
 	return &VContainer{
 		inner:            inner,
 		vcontainerClient: vcontainerClient,
+		vprocessClient:   vprocessClient,
 		logger:           logger,
 	}
 }
@@ -202,12 +208,11 @@ func (c *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.P
 	if err != nil {
 		c.logger.Error("vcontainer-run", err)
 	}
-
 	innerProcess, err := c.inner.Run(spec, io)
 	if err != nil {
 		return innerProcess, err
 	}
-	process := NewVProcess(c.logger, runResponse.ID, innerProcess)
+	process := NewVProcess(c.logger, c.inner.Handle(), runResponse.ID, innerProcess, c.vprocessClient)
 	return process, nil
 }
 
@@ -302,7 +307,7 @@ func (c *VContainer) RemoveProperty(name string) error {
 }
 
 func (c *VContainer) buildContext() context.Context {
-	md := metadata.Pairs(vcontainercommon.ContainerIdKey, c.Handle())
+	md := metadata.Pairs(vcontainercommon.ContainerIDKey, c.Handle())
 	ctx := context.Background()
 	ctx = metadata.NewContext(ctx, md)
 	return ctx
