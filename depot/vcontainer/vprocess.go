@@ -1,11 +1,11 @@
 package vcontainer
 
-import google_protobuf3 "github.com/gogo/protobuf/types"
 import (
 	"context"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
+	google_protobuf "github.com/gogo/protobuf/types"
 	"github.com/virtualcloudfoundry/vcontainercommon"
 	"github.com/virtualcloudfoundry/vcontainercommon/vcontainermodels"
 	"google.golang.org/grpc/metadata"
@@ -39,11 +39,11 @@ func (v *VProcess) ID() string {
 func (v *VProcess) Wait() (int, error) {
 	v.logger.Info("vprocess-wait")
 	ctx := v.buildContext()
-	client, err := v.vprocessClient.Wait(ctx)
+	client, err := v.vprocessClient.Wait(ctx, &google_protobuf.Empty{})
 	if err != nil {
 		v.logger.Error("vprocess-wait-failed", err)
 	}
-	err = client.Send(&google_protobuf3.Empty{})
+	_, err = client.Recv()
 	if err != nil {
 		v.logger.Error("vprocess-send-failed", err)
 	}
