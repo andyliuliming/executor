@@ -43,9 +43,15 @@ func (v *VProcess) Wait() (int, error) {
 	if err != nil {
 		v.logger.Error("vprocess-wait-failed", err)
 	}
-	_, err = client.Recv()
-	if err != nil {
-		v.logger.Error("vprocess-send-failed", err)
+	for {
+		waitResponse, err := client.Recv()
+		if waitResponse.Exited {
+			v.logger.Info("vprocess-wait-status-code", lager.Data{"status": waitResponse.ExitCode})
+		}
+		if err != nil {
+			v.logger.Error("vprocess-recv-failed", err)
+			break
+		}
 	}
 	return v.inner.Wait()
 }
