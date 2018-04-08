@@ -47,6 +47,11 @@ func (v *VProcess) Wait() (int, error) {
 		waitResponse, err := client.Recv()
 		if waitResponse.Exited {
 			v.logger.Info("vprocess-wait-status-code", lager.Data{"status": waitResponse.ExitCode})
+			err = client.CloseSend()
+			if err != nil {
+				v.logger.Error("vprocess-wait-close-send-failed", err)
+			}
+			break
 		}
 		if err != nil {
 			v.logger.Error("vprocess-recv-failed", err)
