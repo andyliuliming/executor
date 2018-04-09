@@ -164,14 +164,15 @@ func (c *VContainer) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error)
 	if err != nil {
 		c.logger.Error("vcontainer-stream-out", err)
 	} else {
-		response, err := client.Recv()
-		if err != nil {
-			c.logger.Error("stream-out-recv", err)
-		}
-		if response != nil {
-			c.logger.Info("stream-out-recv", lager.Data{"length": len(response.Content)})
-		} else {
-			c.logger.Info("stream-out-recv-response-nil")
+		stream := NewStreamOutAdapter(c.logger, client)
+		data := make([]byte, 32*1024)
+		for {
+			n, err := stream.Read(data)
+			if err != nil {
+				c.logger.Error("vcontainer-stream-out-read-failed", err)
+				break
+			}
+			c.logger.Info("read-got-byte-length", lager.Data{"n": n})
 		}
 	}
 	return c.inner.StreamOut(spec)
