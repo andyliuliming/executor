@@ -207,7 +207,7 @@ func (c *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.P
 	runResponse, err := c.vcontainerClient.Run(ctx, specRemote)
 	taskId := ""
 	if err != nil {
-		c.logger.Error("vcontainer-run", err)
+		c.logger.Error("vcontainer-run-run-failed", err)
 		// return nil, err
 	} else {
 		c.logger.Info("vcontainer-run-spec-result-id", lager.Data{"id": runResponse.ID})
