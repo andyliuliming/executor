@@ -205,17 +205,20 @@ func (c *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.P
 	specRemote, _ := ConvertProcessSpec(spec)
 	c.logger.Info("vcontainer-run-spec-to-send", lager.Data{"spec": specRemote})
 	runResponse, err := c.vcontainerClient.Run(ctx, specRemote)
+	taskId := ""
 	if err != nil {
 		c.logger.Error("vcontainer-run", err)
 		// return nil, err
 	} else {
 		c.logger.Info("vcontainer-run-spec-result-id", lager.Data{"id": runResponse.ID})
+		taskId = runResponse.ID
 	}
+
 	innerProcess, err := c.inner.Run(spec, io)
 	if err != nil {
 		return innerProcess, err
 	}
-	process := NewVProcess(c.logger, c.inner.Handle(), runResponse.ID, innerProcess, c.vprocessClient)
+	process := NewVProcess(c.logger, c.inner.Handle(), taskId, innerProcess, c.vprocessClient)
 	return process, nil
 }
 
