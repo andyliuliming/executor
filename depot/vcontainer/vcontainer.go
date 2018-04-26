@@ -139,17 +139,20 @@ func (c *VContainer) StreamIn(spec garden.StreamInSpec) error {
 		streamInResponse, err := client.CloseAndRecv()
 		if err != nil {
 			c.logger.Error("vcontainer-stream-in-spec-close-and-recv-failed", err)
+			//
 		}
 		if streamInResponse != nil {
 			c.logger.Info("vcontainer-stream-in-spec-close-and-recv", lager.Data{"message": streamInResponse.Message})
 		}
-		c.logger.Info("vcontainer-stream-in-spec-send-succeed", lager.Data{"bytes": bytesSent})
+		c.logger.Info("vcontainer-stream-in-bytes-sent", lager.Data{"bytes": bytesSent})
 	}
 	_, err = spec.TarStream.(io.Seeker).Seek(0, io.SeekStart)
 	if err != nil {
 		c.logger.Error("vcontainer-stream-seek-failed", err)
 	}
-	return c.inner.StreamIn(spec)
+	err = c.inner.StreamIn(spec)
+	c.logger.Info("vcontainer-stream-in-exited")
+	return err
 }
 
 func (c *VContainer) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error) {
