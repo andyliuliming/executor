@@ -3,7 +3,6 @@ package vcontainer
 import (
 	"context"
 	"strings"
-	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -66,8 +65,6 @@ func (v *VProcess) Wait() (int, error) {
 				v.logger.Info("vprocess-wait-status-code", lager.Data{"status": waitResponse.ExitCode})
 				break
 			}
-			// sleep for 5 seconds.
-			time.Sleep(time.Second * 5)
 		}
 	}
 	return v.inner.Wait()
