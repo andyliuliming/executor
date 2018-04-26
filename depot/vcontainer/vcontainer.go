@@ -219,6 +219,7 @@ func (c *VContainer) Run(spec garden.ProcessSpec, io garden.ProcessIO) (garden.P
 
 	innerProcess, err := c.inner.Run(spec, io)
 	if err != nil {
+		c.logger.Error("vcontainer-run-inner-run-failed", err)
 		return innerProcess, err
 	}
 	process := NewVProcess(c.logger, c.inner.Handle(), taskId, innerProcess, c.vprocessClient)

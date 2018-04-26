@@ -37,24 +37,28 @@ func (v *VProcess) ID() string {
 }
 
 func (v *VProcess) Wait() (int, error) {
-	v.logger.Info("vprocess-wait")
+	v.logger.Info("vprocess-wait", lager.Data{"processid": v.processID, "containerid": v.containerID})
 	ctx := v.buildContext()
 	client, err := v.vprocessClient.Wait(ctx, &google_protobuf.Empty{})
 	if err != nil {
 		v.logger.Error("vprocess-wait-failed", err)
 	}
+
+	defer func() {
+		err = client.CloseSend()
+		if err != nil {
+			v.logger.Error("vprocess-wait-close-send-failed", err)
+		}
+	}()
+
 	for {
 		waitResponse, err := client.Recv()
-		if waitResponse.Exited {
-			v.logger.Info("vprocess-wait-status-code", lager.Data{"status": waitResponse.ExitCode})
-			err = client.CloseSend()
-			if err != nil {
-				v.logger.Error("vprocess-wait-close-send-failed", err)
-			}
+		if err != nil {
+			v.logger.Error("vprocess-wait-recv-failed", err, lager.Data{"processid": v.processID, "containerid": v.containerID})
 			break
 		}
-		if err != nil {
-			v.logger.Error("vprocess-recv-failed", err)
+		if waitResponse != nil && waitResponse.Exited {
+			v.logger.Info("vprocess-wait-status-code", lager.Data{"status": waitResponse.ExitCode})
 			break
 		}
 	}
@@ -62,12 +66,12 @@ func (v *VProcess) Wait() (int, error) {
 }
 
 func (v *VProcess) SetTTY(spec garden.TTYSpec) error {
-	v.logger.Info("vprocess-set-tty")
+	v.logger.Info("vprocess-set-tty", lager.Data{"processid": v.processID, "containerid": v.containerID})
 	return v.inner.SetTTY(spec)
 }
 
 func (v *VProcess) Signal(sig garden.Signal) error {
-	v.logger.Info("vprocess-signal")
+	v.logger.Info("vprocess-signal", lager.Data{"processid": v.processID, "containerid": v.containerID})
 	return v.inner.Signal(sig)
 }
 
