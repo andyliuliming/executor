@@ -56,6 +56,7 @@ func (v *VProcess) Wait() (int, error) {
 		}()
 
 		for {
+			v.logger.Info("vprocess-wait-still-waiting", lager.Data{"processid": v.processID, "containerid": v.containerID})
 			waitResponse, err := client.Recv()
 			if err != nil {
 				v.logger.Error("vprocess-wait-recv-failed", err, lager.Data{"processid": v.processID, "containerid": v.containerID})
