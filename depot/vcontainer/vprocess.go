@@ -2,6 +2,8 @@ package vcontainer
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
@@ -38,28 +40,33 @@ func (v *VProcess) ID() string {
 
 func (v *VProcess) Wait() (int, error) {
 	v.logger.Info("vprocess-wait", lager.Data{"processid": v.processID, "containerid": v.containerID})
-	ctx := v.buildContext()
-	client, err := v.vprocessClient.Wait(ctx, &google_protobuf.Empty{})
-	if err != nil {
-		v.logger.Error("vprocess-wait-failed", err)
-	}
 
-	defer func() {
-		err = client.CloseSend()
+	if len(v.containerID) != len("3fa79176-be9a-4496-bda2-cdaa06c32480") && // skip for the staging container for now.
+		!strings.HasPrefix(v.containerID, "executor-healthcheck") {
+		ctx := v.buildContext()
+		client, err := v.vprocessClient.Wait(ctx, &google_protobuf.Empty{})
 		if err != nil {
-			v.logger.Error("vprocess-wait-close-send-failed", err)
+			v.logger.Error("vprocess-wait-failed", err)
 		}
-	}()
+		defer func() {
+			err = client.CloseSend()
+			if err != nil {
+				v.logger.Error("vprocess-wait-close-send-failed", err)
+			}
+		}()
 
-	for {
-		waitResponse, err := client.Recv()
-		if err != nil {
-			v.logger.Error("vprocess-wait-recv-failed", err, lager.Data{"processid": v.processID, "containerid": v.containerID})
-			break
-		}
-		if waitResponse != nil && waitResponse.Exited {
-			v.logger.Info("vprocess-wait-status-code", lager.Data{"status": waitResponse.ExitCode})
-			break
+		for {
+			waitResponse, err := client.Recv()
+			if err != nil {
+				v.logger.Error("vprocess-wait-recv-failed", err, lager.Data{"processid": v.processID, "containerid": v.containerID})
+				break
+			}
+			if waitResponse != nil && waitResponse.Exited {
+				v.logger.Info("vprocess-wait-status-code", lager.Data{"status": waitResponse.ExitCode})
+				break
+			}
+			// sleep for 5 seconds.
+			time.Sleep(time.Second * 5)
 		}
 	}
 	return v.inner.Wait()
