@@ -81,7 +81,8 @@ func (v *VProcess) Signal(sig garden.Signal) error {
 }
 
 func (v *VProcess) buildContext() context.Context {
-	md := metadata.Pairs(vcontainercommon.ContainerIDKey, v.containerID, vcontainercommon.ContainerIDKey, v.processID)
+	md := metadata.Pairs(vcontainercommon.ContainerIDKey, v.containerID,
+		vcontainercommon.ProcessIDKey, v.processID)
 	ctx := context.Background()
 	ctx = metadata.NewContext(ctx, md)
 	return ctx
