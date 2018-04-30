@@ -63,11 +63,15 @@ func (c *VContainer) Stop(kill bool) error {
 func (c *VContainer) Info() (garden.ContainerInfo, error) {
 	c.logger.Info("vcontainer-info")
 	ctx := c.buildContext()
-	_, err := c.vcontainerClient.Info(ctx, &google_protobuf.Empty{})
+	newInfo, err := c.vcontainerClient.Info(ctx, &google_protobuf.Empty{})
 	if err != nil {
 		c.logger.Error("vcontainer-info", err)
 	}
-	return c.inner.Info()
+	c.logger.Info("vcontainer-info-vc-new-info", lager.Data{"info": newInfo})
+	info, err := c.inner.Info()
+	c.logger.Info("vcontainer-info-vc-info", lager.Data{"info": info})
+	// TODO convert the info got remotely to the garden.ContainerInfo.
+	return info, err
 }
 
 func (c *VContainer) StreamIn(spec garden.StreamInSpec) error {
