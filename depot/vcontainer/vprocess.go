@@ -40,8 +40,8 @@ func (v *VProcess) ID() string {
 func (v *VProcess) Wait() (int, error) {
 	v.logger.Info("vprocess-wait", lager.Data{"processid": v.processID, "containerid": v.containerID})
 
-	if len(v.containerID) != len("3fa79176-be9a-4496-bda2-cdaa06c32480") && // skip for the staging container for now.
-		!strings.HasPrefix(v.containerID, "executor-healthcheck") {
+	// if len(v.containerID) != len("3fa79176-be9a-4496-bda2-cdaa06c32480") && // skip for the staging container for now.
+	if !strings.HasPrefix(v.containerID, "executor-healthcheck") {
 		ctx := v.buildContext()
 		client, err := v.vprocessClient.Wait(ctx, &google_protobuf.Empty{})
 		if err != nil {
