@@ -14,18 +14,18 @@ import (
 
 type VProcess struct {
 	containerID    string
-	processID      string
+	taskID         string
 	inner          garden.Process
 	logger         lager.Logger
 	vprocessClient vcontainermodels.VProcessClient
 }
 
-func NewVProcess(logger lager.Logger, containerID, processID string, inner garden.Process,
+func NewVProcess(logger lager.Logger, containerID, taskID string, inner garden.Process,
 	vprocessClient vcontainermodels.VProcessClient) *VProcess {
-	logger.Info("vprocess-new-vprocess", lager.Data{"processID": processID, "containerID": containerID})
+	logger.Info("vprocess-new-vprocess", lager.Data{"taskID": taskID, "containerID": containerID})
 	return &VProcess{
 		containerID:    containerID,
-		processID:      processID,
+		taskID:         taskID,
 		inner:          inner,
 		logger:         logger,
 		vprocessClient: vprocessClient,
@@ -38,7 +38,7 @@ func (v *VProcess) ID() string {
 }
 
 func (v *VProcess) Wait() (int, error) {
-	v.logger.Info("vprocess-wait", lager.Data{"processid": v.processID, "containerid": v.containerID})
+	v.logger.Info("vprocess-wait", lager.Data{"taskid": v.taskID, "containerid": v.containerID})
 
 	// if len(v.containerID) != len("3fa79176-be9a-4496-bda2-cdaa06c32480") && // skip for the staging container for now.
 	if !strings.HasPrefix(v.containerID, "executor-healthcheck") {
@@ -55,10 +55,10 @@ func (v *VProcess) Wait() (int, error) {
 		}()
 
 		for {
-			v.logger.Info("vprocess-wait-still-waiting", lager.Data{"processid": v.processID, "containerid": v.containerID})
+			v.logger.Info("vprocess-wait-still-waiting", lager.Data{"taskid": v.taskID, "containerid": v.containerID})
 			waitResponse, err := client.Recv()
 			if err != nil {
-				v.logger.Error("vprocess-wait-recv-failed", err, lager.Data{"processid": v.processID, "containerid": v.containerID})
+				v.logger.Error("vprocess-wait-recv-failed", err, lager.Data{"taskid": v.taskID, "containerid": v.containerID})
 				break
 			}
 			if waitResponse != nil && waitResponse.Exited {
@@ -71,18 +71,18 @@ func (v *VProcess) Wait() (int, error) {
 }
 
 func (v *VProcess) SetTTY(spec garden.TTYSpec) error {
-	v.logger.Info("vprocess-set-tty", lager.Data{"processid": v.processID, "containerid": v.containerID})
+	v.logger.Info("vprocess-set-tty", lager.Data{"taskid": v.taskID, "containerid": v.containerID})
 	return v.inner.SetTTY(spec)
 }
 
 func (v *VProcess) Signal(sig garden.Signal) error {
-	v.logger.Info("vprocess-signal", lager.Data{"processid": v.processID, "containerid": v.containerID})
+	v.logger.Info("vprocess-signal", lager.Data{"taskid": v.taskID, "containerid": v.containerID})
 	return v.inner.Signal(sig)
 }
 
 func (v *VProcess) buildContext() context.Context {
 	md := metadata.Pairs(vcontainercommon.ContainerIDKey, v.containerID,
-		vcontainercommon.ProcessIDKey, v.processID)
+		vcontainercommon.TaskIDKey, v.taskID)
 	ctx := context.Background()
 	ctx = metadata.NewContext(ctx, md)
 	return ctx
