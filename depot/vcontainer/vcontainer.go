@@ -179,7 +179,7 @@ func (c *VContainer) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error)
 				c.logger.Error("vcontainer-stream-out-read-failed", err)
 				break
 			}
-			c.logger.Info("read-got-byte-length", lager.Data{"n": n})
+			c.logger.Info("vcontainer-stream-out-read-got-byte-length", lager.Data{"n": n})
 		}
 	}
 	return c.inner.StreamOut(spec)
