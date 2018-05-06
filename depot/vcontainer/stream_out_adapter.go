@@ -2,6 +2,7 @@ package vcontainer
 
 import (
 	"io"
+	"io/ioutil"
 
 	"code.cloudfoundry.org/lager"
 
@@ -46,6 +47,18 @@ func (s *StreamOutAdapter) Read(p []byte) (n int, err error) {
 			"content_len": len(response.Content)})
 		s.currentResponse = response.Content
 		s.currentIndex = 0
+	}
+
+	// todo compress this.
+	// TODO save it to file for debug
+	f, _ := ioutil.TempFile("/tmp", "stream-file")
+	_, err = f.Write(s.currentResponse)
+	if err != nil {
+		s.logger.Error("stream-out-adapter-write-response-failed", err)
+	}
+	err = f.Close()
+	if err != nil {
+		s.logger.Error("stream-out-adapter-write-response-close-failed", err)
 	}
 
 	bufferSize := len(p)
