@@ -145,7 +145,6 @@ func (c *VContainer) StreamIn(spec garden.StreamInSpec) error {
 		streamInResponse, err := client.CloseAndRecv()
 		if err != nil {
 			c.logger.Error("vcontainer-stream-in-spec-close-and-recv-failed", err)
-			//
 		}
 		if streamInResponse != nil {
 			c.logger.Info("vcontainer-stream-in-spec-close-and-recv", lager.Data{"message": streamInResponse.Message})

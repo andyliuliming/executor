@@ -24,10 +24,16 @@ func NewStreamOutAdapter(logger lager.Logger, client vcontainermodels.VContainer
 
 func (s *StreamOutAdapter) Read(p []byte) (n int, err error) {
 	response, err := s.client.Recv()
+
 	if err != nil {
 		s.logger.Error("stream-out-adapter-read-recv-failed", err)
 		return 0, verrors.New("stream-out-adapter-read-failed")
 	}
+
+	s.logger.Info("stream-out-adapter-read", lager.Data{
+		"buffer_size": len(p),
+		"content_len": len(response.Content)})
+
 	copy(p, response.Content)
 	return len(response.Content), nil
 }
