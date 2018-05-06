@@ -6,13 +6,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/virtualcloudfoundry/vcontainercommon/verrors"
-
 	"code.cloudfoundry.org/garden"
 	"code.cloudfoundry.org/lager"
 	google_protobuf "github.com/gogo/protobuf/types"
 	"github.com/virtualcloudfoundry/vcontainercommon"
 	"github.com/virtualcloudfoundry/vcontainercommon/vcontainermodels"
+	"github.com/virtualcloudfoundry/vcontainercommon/verrors"
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc/metadata"
 )
@@ -174,17 +173,9 @@ func (c *VContainer) StreamOut(spec garden.StreamOutSpec) (io.ReadCloser, error)
 		return nil, verrors.New("vcontainer open stream out rpc failed.")
 	} else {
 		stream := NewStreamOutAdapter(c.logger, client)
-		// data := make([]byte, 32*1024)
-		// for {
-		// 	n, err := stream.Read(data)
-		// 	if err != nil {
-		// 		c.logger.Error("vcontainer-stream-out-read-failed", err)
-		// 		break
-		// 	}
-		// 	c.logger.Info("vcontainer-stream-out-read-got-byte-length", lager.Data{"n": n})
-		// }
-		return stream, nil //c.inner.StreamOut(spec)
+		return stream, nil
 	}
+	// return c.inner.StreamOut(spec)
 }
 
 func (c *VContainer) CurrentBandwidthLimits() (garden.BandwidthLimits, error) {
