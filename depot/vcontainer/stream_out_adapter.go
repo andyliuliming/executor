@@ -11,8 +11,10 @@ import (
 )
 
 type StreamOutAdapter struct {
-	logger lager.Logger
-	client vcontainermodels.VContainer_StreamOutClient
+	logger          lager.Logger
+	client          vcontainermodels.VContainer_StreamOutClient
+	currentResponse []byte
+	currentIndex    int
 }
 
 func NewStreamOutAdapter(logger lager.Logger, client vcontainermodels.VContainer_StreamOutClient) io.ReadCloser {
@@ -23,19 +25,32 @@ func NewStreamOutAdapter(logger lager.Logger, client vcontainermodels.VContainer
 }
 
 func (s *StreamOutAdapter) Read(p []byte) (n int, err error) {
-	response, err := s.client.Recv()
+	if s.currentResponse != nil || s.currentIndex == len(s.currentResponse)-1 {
+		response, err := s.client.Recv()
 
-	if err != nil {
-		s.logger.Error("stream-out-adapter-read-recv-failed", err)
-		return 0, verrors.New("stream-out-adapter-read-failed")
+		if err != nil {
+			if err == io.EOF {
+				s.logger.Info("stream-out-adapter-read-recv-eof-got")
+				return 0, io.EOF
+			} else {
+				s.logger.Error("stream-out-adapter-read-recv-failed", err)
+				return 0, verrors.New("stream-out-adapter-read-failed")
+			}
+		}
+		s.logger.Info("stream-out-adapter-read", lager.Data{
+			"buffer_size": len(p),
+			"content_len": len(response.Content)})
+		s.currentResponse = response.Content
 	}
 
-	s.logger.Info("stream-out-adapter-read", lager.Data{
-		"buffer_size": len(p),
-		"content_len": len(response.Content)})
-
-	copy(p, response.Content)
-	return len(response.Content), nil
+	bufferSize := len(p)
+	if leftSize := len(s.currentResponse) - s.currentIndex; leftSize < bufferSize {
+		copy(p, s.currentResponse[s.currentIndex:])
+		return leftSize, nil
+	} else {
+		copy(p, s.currentResponse[s.currentIndex:])
+		return bufferSize, nil
+	}
 }
 
 func (s *StreamOutAdapter) Write(p []byte) (n int, err error) {
