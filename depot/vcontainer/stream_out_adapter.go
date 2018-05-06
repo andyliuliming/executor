@@ -19,13 +19,16 @@ type StreamOutAdapter struct {
 
 func NewStreamOutAdapter(logger lager.Logger, client vcontainermodels.VContainer_StreamOutClient) io.ReadCloser {
 	return &StreamOutAdapter{
-		logger: logger,
-		client: client,
+		logger:          logger,
+		client:          client,
+		currentResponse: nil,
+		currentIndex:    0,
 	}
 }
 
 func (s *StreamOutAdapter) Read(p []byte) (n int, err error) {
-	if s.currentResponse != nil || s.currentIndex == len(s.currentResponse)-1 {
+	s.logger.Info("stream-out-adapter-read")
+	if s.currentResponse == nil || s.currentIndex == len(s.currentResponse)-1 {
 		response, err := s.client.Recv()
 
 		if err != nil {
@@ -41,14 +44,17 @@ func (s *StreamOutAdapter) Read(p []byte) (n int, err error) {
 			"buffer_size": len(p),
 			"content_len": len(response.Content)})
 		s.currentResponse = response.Content
+		s.currentIndex = 0
 	}
 
 	bufferSize := len(p)
 	if leftSize := len(s.currentResponse) - s.currentIndex; leftSize < bufferSize {
 		copy(p, s.currentResponse[s.currentIndex:])
+		s.currentIndex = len(s.currentResponse) - 1
 		return leftSize, nil
 	} else {
 		copy(p, s.currentResponse[s.currentIndex:])
+		s.currentIndex += bufferSize
 		return bufferSize, nil
 	}
 }
@@ -58,6 +64,7 @@ func (s *StreamOutAdapter) Write(p []byte) (n int, err error) {
 }
 
 func (s *StreamOutAdapter) Close() error {
+	s.logger.Info("stream-out-adapter-close")
 	err := s.client.CloseSend()
 	if err != nil {
 		s.logger.Error("stream-out-adapter-client-close-failed", err)
