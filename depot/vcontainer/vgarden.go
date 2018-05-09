@@ -105,7 +105,10 @@ func (c *vgarden) BulkMetrics(handles []string) (map[string]garden.ContainerMetr
 	if err != nil {
 		c.logger.Error("bulkmetrics", err)
 	}
-	return c.inner.BulkMetrics(handles)
+	bulkMetrics, err := c.inner.BulkMetrics(handles)
+	// return c.inner.BulkMetrics(handles)
+	c.logger.Info("vgarden-bulkmetrics-real-data", lager.Data{"metrics": bulkMetrics})
+	return bulkMetrics, err
 }
 
 func (c *vgarden) Lookup(handle string) (garden.Container, error) {
